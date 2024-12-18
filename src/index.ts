@@ -36,10 +36,10 @@ export class KeyboardNavigation {
     workspace.getInjectionDiv().removeAttribute('tabindex');
     workspace.getParentSvg().removeAttribute('tabindex');
 
-    workspace.getSvgGroup().addEventListener('focus', () => {
+    workspace.getSvgGroup().addEventListener('focusin', () => {
       navigationController.setHasFocus(true);
     });
-    workspace.getSvgGroup().addEventListener('blur', () => {
+    workspace.getSvgGroup().addEventListener('focusout', () => {
       navigationController.setHasFocus(false);
     });
   }

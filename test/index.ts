@@ -51,6 +51,7 @@ function createWorkspace(): Blockly.WorkspaceSvg {
         location.search.includes('geras') ? 'geras' :
         location.search.includes('thrasos') ? 'thrasos' : 'zelos';
   const options = {
+    comments: true,
     toolbox: toolbox,
     renderer,
   };

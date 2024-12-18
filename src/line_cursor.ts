@@ -424,6 +424,9 @@ export class LineCursor extends Marker {
       drawer.hide();
       const block = newNode.getLocation() as Blockly.BlockSvg;
       Blockly.common.setSelected(block);
+
+      block.getSvgRoot().setAttribute('tabindex', '0');
+      block.getSvgRoot().focus();
     } else if (newNodeIsFieldColour) {
       drawer.hide();
 
@@ -449,6 +452,12 @@ export class LineCursor extends Marker {
 
       drawer.draw(oldNode, newNode);
     }
+
+    // TODO: Figure out why this breaks navigation (need to avoid growing the tab index indefinitely).
+    // if (oldNode?.getType() == ASTNode.types.BLOCK) {
+      // const oldNodeBlock = oldNode.getLocation() as Blockly.BlockSvg;
+      // oldNodeBlock.getSvgRoot().removeAttribute('tabindex');
+    // }
   }
 }
 
