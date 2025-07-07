@@ -15,12 +15,13 @@ import {
   getFocusedFieldName,
   testSetup,
   testFileLocations,
-  PAUSE_TIME,
   tabNavigateToWorkspace,
   keyLeft,
   keyRight,
   keyUp,
   keyDown,
+  sendKeyAndWait,
+  tabNavigateForward,
 } from './test_setup.js';
 import {Key} from 'webdriverio';
 
@@ -43,7 +44,6 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Selected block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
 
     await keyDown(this.browser, 14);
 
@@ -54,9 +54,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Down from statement block selects next block across stacks', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'p5_canvas_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyDown(this.browser);
 
     chai
@@ -66,9 +64,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Up from statement block selects previous block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'simple_circle_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyUp(this.browser);
 
     chai
@@ -78,9 +74,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Down from parent block selects first child block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'p5_setup_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyDown(this.browser);
     chai
       .expect(await getCurrentFocusedBlockId(this.browser))
@@ -89,9 +83,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Up from child block selects parent block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'p5_canvas_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyUp(this.browser);
     chai
       .expect(await getCurrentFocusedBlockId(this.browser))
@@ -100,9 +92,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Right from block selects first field', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'p5_canvas_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyRight(this.browser);
 
     chai
@@ -114,9 +104,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Right from block selects first inline input', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'simple_circle_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyRight(this.browser);
 
     chai.assert.equal(
@@ -127,9 +115,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Up from inline input selects statement block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'math_number_2');
-    await this.browser.pause(PAUSE_TIME);
     await keyUp(this.browser);
 
     chai.assert.equal(
@@ -140,9 +126,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Left from first inline input selects block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'math_number_2');
-    await this.browser.pause(PAUSE_TIME);
     await keyLeft(this.browser);
 
     chai.assert.equal(
@@ -153,9 +137,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Right from first inline input selects second inline input', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'math_number_2');
-    await this.browser.pause(PAUSE_TIME);
     await keyRight(this.browser);
 
     chai.assert.equal(
@@ -166,9 +148,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Left from second inline input selects first inline input', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'math_number_3');
-    await this.browser.pause(PAUSE_TIME);
     await keyLeft(this.browser);
 
     chai.assert.equal(
@@ -179,9 +159,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Right from last inline input selects next block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'colour_picker_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyRight(this.browser);
 
     chai
@@ -191,9 +169,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Down from inline input selects next block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'colour_picker_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyDown(this.browser);
 
     chai
@@ -203,9 +179,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test("Down from inline input selects block's child block", async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'logic_boolean_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyDown(this.browser);
 
     chai
@@ -215,9 +189,7 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Right from text block selects shadow block then field', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'text_print_1');
-    await this.browser.pause(PAUSE_TIME);
     await keyRight(this.browser);
 
     chai.assert.equal(await getCurrentFocusedBlockId(this.browser), 'text_1');
@@ -237,15 +209,12 @@ suite('Keyboard navigation on Blocks', function () {
 
   test('Losing focus cancels move', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'text_print_1');
-    await this.browser.keys('m');
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, 'm');
 
     chai.assert.isTrue(await isDragging(this.browser));
 
-    await this.browser.keys(Key.Tab);
-    await this.browser.pause(PAUSE_TIME);
+    await tabNavigateForward(this.browser);
 
     chai.assert.isFalse(await isDragging(this.browser));
   });
@@ -262,9 +231,7 @@ suite('Keyboard navigation on Fields', function () {
 
   test('Up from first field selects block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlockField(this.browser, 'p5_canvas_1', 'WIDTH');
-    await this.browser.pause(PAUSE_TIME);
     await keyUp(this.browser);
 
     chai.assert.equal(
@@ -275,9 +242,7 @@ suite('Keyboard navigation on Fields', function () {
 
   test('Left from first field selects block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlockField(this.browser, 'p5_canvas_1', 'WIDTH');
-    await this.browser.pause(PAUSE_TIME);
     await keyLeft(this.browser);
 
     chai.assert.equal(
@@ -288,9 +253,7 @@ suite('Keyboard navigation on Fields', function () {
 
   test('Right from first field selects second field', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlockField(this.browser, 'p5_canvas_1', 'WIDTH');
-    await this.browser.pause(PAUSE_TIME);
     await keyRight(this.browser);
 
     chai
@@ -302,9 +265,7 @@ suite('Keyboard navigation on Fields', function () {
 
   test('Left from second field selects first field', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlockField(this.browser, 'p5_canvas_1', 'HEIGHT');
-    await this.browser.pause(PAUSE_TIME);
     await keyLeft(this.browser);
 
     chai
@@ -316,9 +277,7 @@ suite('Keyboard navigation on Fields', function () {
 
   test('Right from second field selects next block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlockField(this.browser, 'p5_canvas_1', 'HEIGHT');
-    await this.browser.pause(PAUSE_TIME);
     await keyRight(this.browser);
 
     chai
@@ -328,9 +287,7 @@ suite('Keyboard navigation on Fields', function () {
 
   test('Down from field selects next block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlockField(this.browser, 'p5_canvas_1', 'WIDTH');
-    await this.browser.pause(PAUSE_TIME);
     await keyDown(this.browser);
 
     chai
@@ -340,9 +297,7 @@ suite('Keyboard navigation on Fields', function () {
 
   test("Down from field selects block's child block", async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlockField(this.browser, 'controls_repeat_1', 'TIMES');
-    await this.browser.pause(PAUSE_TIME);
     await keyDown(this.browser);
 
     chai
@@ -353,9 +308,7 @@ suite('Keyboard navigation on Fields', function () {
   test('Do not navigate while field editor is open', async function () {
     // Open a field editor dropdown
     await focusOnBlockField(this.browser, 'logic_boolean_1', 'BOOL');
-    await this.browser.pause(PAUSE_TIME);
-    await this.browser.keys(Key.Enter);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     // Try to navigate to a different block
     await keyRight(this.browser);
@@ -367,14 +320,12 @@ suite('Keyboard navigation on Fields', function () {
   test('Do not reopen field editor when handling enter to make a choice inside the editor', async function () {
     // Open colour picker
     await focusOnBlockField(this.browser, 'colour_picker_1', 'COLOUR');
-    await this.browser.pause(PAUSE_TIME);
-    await this.browser.keys(Key.Enter);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     // Move right to pick a new colour.
     await keyRight(this.browser);
     // Enter to choose.
-    await this.browser.keys(Key.Enter);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     // Focus seems to take longer than a single pause to settle.
     await this.browser.waitUntil(

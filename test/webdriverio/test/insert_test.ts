@@ -9,7 +9,6 @@ import {Key} from 'webdriverio';
 import {
   getFocusedBlockType,
   moveToToolboxCategory,
-  PAUSE_TIME,
   focusOnBlock,
   tabNavigateToWorkspace,
   testFileLocations,
@@ -19,6 +18,7 @@ import {
   blockIsPresent,
   keyUp,
   tabNavigateToToolbox,
+  sendKeyAndWait,
 } from './test_setup.js';
 
 suite('Insert test', function () {
@@ -28,7 +28,6 @@ suite('Insert test', function () {
   // Clear the workspace and load start blocks
   setup(async function () {
     this.browser = await testSetup(testFileLocations.BASE);
-    await this.browser.pause(PAUSE_TIME);
   });
 
   test('Insert and cancel with block selection', async function () {
@@ -36,15 +35,15 @@ suite('Insert test', function () {
     await tabNavigateToWorkspace(this.browser);
     await focusOnBlock(this.browser, 'draw_circle_1');
     // Insert 'if' block
-    await this.browser.keys('t');
+    await sendKeyAndWait(this.browser, 't');
     await keyRight(this.browser);
-    await this.browser.keys(Key.Enter);
+    await sendKeyAndWait(this.browser, Key.Enter);
     chai.assert.equal('controls_if', await getFocusedBlockType(this.browser));
     const ifId = await getCurrentFocusedBlockId(this.browser);
     chai.assert.ok(ifId);
 
     // Cancel
-    await this.browser.keys(Key.Escape);
+    await sendKeyAndWait(this.browser, Key.Escape);
 
     chai.assert.isFalse(await blockIsPresent(this.browser, ifId));
   });
@@ -52,17 +51,17 @@ suite('Insert test', function () {
   test('Insert and cancel with workspace selection', async function () {
     // Navigate to workspace.
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.keys('w');
+    await sendKeyAndWait(this.browser, 'w');
     // Insert 'if' block
-    await this.browser.keys('t');
+    await sendKeyAndWait(this.browser, 't');
     await keyRight(this.browser);
-    await this.browser.keys(Key.Enter);
+    await sendKeyAndWait(this.browser, Key.Enter);
     chai.assert.equal('controls_if', await getFocusedBlockType(this.browser));
     const ifId = await getCurrentFocusedBlockId(this.browser);
     chai.assert.ok(ifId);
 
     // Cancel
-    await this.browser.keys(Key.Escape);
+    await sendKeyAndWait(this.browser, Key.Escape);
 
     chai.assert.isFalse(await blockIsPresent(this.browser, ifId));
   });
@@ -76,9 +75,9 @@ suite('Insert test', function () {
     // Move to flyout.
     await keyRight(this.browser);
     // Select Function block.
-    await this.browser.keys(Key.Enter);
+    await sendKeyAndWait(this.browser, Key.Enter);
     // Confirm move.
-    await this.browser.keys(Key.Enter);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     chai.assert.equal(
       'procedures_defnoreturn',
@@ -92,9 +91,9 @@ suite('Insert test', function () {
     // Insert 'if' block
     await keyRight(this.browser);
     // Choose.
-    await this.browser.keys(Key.Enter);
+    await sendKeyAndWait(this.browser, Key.Enter);
     // Confirm position.
-    await this.browser.keys(Key.Enter);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     // Assert inserted inside first block p5_setup not at top-level.
     chai.assert.equal('controls_if', await getFocusedBlockType(this.browser));

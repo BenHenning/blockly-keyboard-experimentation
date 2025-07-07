@@ -9,7 +9,6 @@ import * as Blockly from 'blockly';
 import {
   testSetup,
   testFileLocations,
-  PAUSE_TIME,
   tabNavigateForward,
   keyDown,
   tabNavigateBackward,
@@ -17,13 +16,13 @@ import {
   keyRight,
   getCurrentFocusNodeId,
   getCurrentFocusedBlockId,
+  sendKeyAndWait,
 } from './test_setup.js';
 
 suite('Toolbox and flyout test', function () {
   // Clear the workspace and load start blocks
   setup(async function () {
     this.browser = await testSetup(testFileLocations.BASE);
-    await this.browser.pause(PAUSE_TIME);
   });
 
   test('Tab navigating to toolbox should open flyout', async function () {
@@ -138,7 +137,6 @@ suite('Toolbox and flyout test', function () {
 
   test('Tabbing to the workspace should close the flyout', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
 
     // The flyout should be closed since it lost focus.
     const flyoutIsOpen = await checkIfFlyoutIsOpen(this.browser);
@@ -164,7 +162,7 @@ suite('Toolbox and flyout test', function () {
   test('Tabbing to the workspace after selecting flyout block via workspace toolbox shortcut should close the flyout', async function () {
     await tabNavigateToWorkspace(this.browser);
 
-    await this.browser.keys('t');
+    await sendKeyAndWait(this.browser, 't');
     await keyRight(this.browser);
     await tabNavigateForward(this.browser);
 

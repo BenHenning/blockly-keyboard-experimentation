@@ -13,10 +13,10 @@ import {
   moveToToolboxCategory,
   testSetup,
   testFileLocations,
-  PAUSE_TIME,
   tabNavigateToWorkspace,
   keyRight,
   focusOnBlockField,
+  sendKeyAndWait,
 } from './test_setup.js';
 import {Key} from 'webdriverio';
 
@@ -26,21 +26,17 @@ suite('Deleting Blocks', function () {
 
   setup(async function () {
     this.browser = await testSetup(testFileLocations.NAVIGATION_TEST_BLOCKS);
-    await this.browser.pause(PAUSE_TIME);
   });
 
   test('Deleting block selects parent block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'controls_if_2');
-    await this.browser.pause(PAUSE_TIME);
 
     chai
       .expect(await blockIsPresent(this.browser, 'controls_if_2'))
       .equal(true);
 
-    await this.browser.keys(Key.Backspace);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Backspace);
 
     chai
       .expect(await blockIsPresent(this.browser, 'controls_if_2'))
@@ -53,16 +49,13 @@ suite('Deleting Blocks', function () {
 
   test('Cutting block selects parent block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'controls_if_2');
-    await this.browser.pause(PAUSE_TIME);
 
     chai
       .expect(await blockIsPresent(this.browser, 'controls_if_2'))
       .equal(true);
 
-    await this.browser.keys([Key.Ctrl, 'x']);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'x']);
 
     chai
       .expect(await blockIsPresent(this.browser, 'controls_if_2'))
@@ -75,17 +68,14 @@ suite('Deleting Blocks', function () {
 
   test('Deleting block also deletes children and inputs', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'controls_if_2');
-    await this.browser.pause(PAUSE_TIME);
 
     chai
       .expect(await blockIsPresent(this.browser, 'logic_boolean_1'))
       .equal(true);
     chai.expect(await blockIsPresent(this.browser, 'text_print_1')).equal(true);
 
-    await this.browser.keys(Key.Backspace);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Backspace);
 
     chai
       .expect(await blockIsPresent(this.browser, 'logic_boolean_1'))
@@ -97,17 +87,14 @@ suite('Deleting Blocks', function () {
 
   test('Cutting block also removes children and inputs', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'controls_if_2');
-    await this.browser.pause(PAUSE_TIME);
 
     chai
       .expect(await blockIsPresent(this.browser, 'logic_boolean_1'))
       .equal(true);
     chai.expect(await blockIsPresent(this.browser, 'text_print_1')).equal(true);
 
-    await this.browser.keys([Key.Ctrl, 'x']);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'x']);
 
     chai
       .expect(await blockIsPresent(this.browser, 'logic_boolean_1'))
@@ -119,16 +106,13 @@ suite('Deleting Blocks', function () {
 
   test('Deleting inline input selects parent block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'logic_boolean_1');
-    await this.browser.pause(PAUSE_TIME);
 
     chai
       .expect(await blockIsPresent(this.browser, 'logic_boolean_1'))
       .equal(true);
 
-    await this.browser.keys(Key.Backspace);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Backspace);
 
     chai
       .expect(await blockIsPresent(this.browser, 'logic_boolean_1'))
@@ -141,16 +125,13 @@ suite('Deleting Blocks', function () {
 
   test('Cutting inline input selects parent block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
     await focusOnBlock(this.browser, 'logic_boolean_1');
-    await this.browser.pause(PAUSE_TIME);
 
     chai
       .expect(await blockIsPresent(this.browser, 'logic_boolean_1'))
       .equal(true);
 
-    await this.browser.keys([Key.Ctrl, 'x']);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'x']);
 
     chai
       .expect(await blockIsPresent(this.browser, 'logic_boolean_1'))
@@ -168,24 +149,19 @@ suite('Deleting Blocks', function () {
     // We want deleting a block to focus the workspace, whatever that
     // means at the time.
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
 
     // The test workspace doesn't already contain a stranded block, so add one.
     await moveToToolboxCategory(this.browser, 'Math');
-    await this.browser.pause(PAUSE_TIME);
     // Move to flyout.
     await keyRight(this.browser);
     // Select number block.
-    await this.browser.keys(Key.Enter);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Enter);
     // Confirm move.
-    await this.browser.keys(Key.Enter);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     chai.assert.equal('math_number', await getFocusedBlockType(this.browser));
 
-    await this.browser.keys(Key.Backspace);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Backspace);
 
     chai.assert.equal(
       await getCurrentFocusedBlockId(this.browser),
@@ -195,24 +171,19 @@ suite('Deleting Blocks', function () {
 
   test('Cutting stranded block selects top block', async function () {
     await tabNavigateToWorkspace(this.browser);
-    await this.browser.pause(PAUSE_TIME);
 
     // The test workspace doesn't already contain a stranded block, so add one.
     await moveToToolboxCategory(this.browser, 'Math');
-    await this.browser.pause(PAUSE_TIME);
     // Move to flyout.
     await keyRight(this.browser);
     // Select number block.
-    await this.browser.keys(Key.Enter);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Enter);
     // Confirm move.
-    await this.browser.keys(Key.Enter);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     chai.assert.equal('math_number', await getFocusedBlockType(this.browser));
 
-    await this.browser.keys([Key.Ctrl, 'x']);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'x']);
 
     chai.assert.equal(
       await getCurrentFocusedBlockId(this.browser),
@@ -223,12 +194,10 @@ suite('Deleting Blocks', function () {
   test('Do not delete block while field editor is open', async function () {
     // Open a field editor
     await focusOnBlockField(this.browser, 'colour_picker_1', 'COLOUR');
-    await this.browser.pause(PAUSE_TIME);
-    await this.browser.keys(Key.Enter);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     // Try to delete block while field editor is open
-    await this.browser.keys(Key.Backspace);
+    await sendKeyAndWait(this.browser, Key.Backspace);
 
     // Block is not deleted
     chai.assert.isTrue(await blockIsPresent(this.browser, 'colour_picker_1'));

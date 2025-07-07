@@ -8,7 +8,6 @@ import * as Blockly from 'blockly';
 import * as chai from 'chai';
 import {Browser, Key} from 'webdriverio';
 import {
-  PAUSE_TIME,
   focusOnBlock,
   tabNavigateToWorkspace,
   testFileLocations,
@@ -24,7 +23,6 @@ suite('Move tests', function () {
   // Clear the workspace and load start blocks
   setup(async function () {
     this.browser = await testSetup(testFileLocations.MOVE_TEST_BLOCKS);
-    await this.browser.pause(PAUSE_TIME);
   });
 
   // When a move of a statement block begins, it is expected that only
@@ -50,7 +48,7 @@ suite('Move tests', function () {
       chai.assert(info.nextId, 'selected block has no next block');
 
       // Start move.
-      await this.browser.keys('m');
+      await sendKeyAndWait(this.browser, 'm');
 
       // Check that the moving block has nothing connected it its
       // next/previous connections, and same thing connected to value
@@ -85,7 +83,7 @@ suite('Move tests', function () {
       );
 
       // Abort move.
-      await this.browser.keys(Key.Escape);
+      await sendKeyAndWait(this.browser, Key.Escape);
     }
   });
 
@@ -110,7 +108,7 @@ suite('Move tests', function () {
       chai.assert(info.valueId, 'selected block has no child value block');
 
       // Start move.
-      await this.browser.keys('m');
+      await sendKeyAndWait(this.browser, 'm');
 
       // Check that the moving block has nothing connected it its
       // next/previous connections, and same thing connected to value
@@ -144,7 +142,7 @@ suite('Move tests', function () {
       );
 
       // Abort move.
-      await this.browser.keys(Key.Escape);
+      await sendKeyAndWait(this.browser, Key.Escape);
     }
   });
 
@@ -168,7 +166,7 @@ suite('Move tests', function () {
     await tabNavigateToWorkspace(this.browser);
     await focusOnBlock(this.browser, BLOCK);
     const startCoordinate = await getCoordinate(this.browser, BLOCK);
-    await this.browser.keys('m');
+    await sendKeyAndWait(this.browser, 'm');
 
     // Check constrained moves have no effect.
     await keyDown(this.browser, 5);
@@ -201,7 +199,7 @@ suite('Move tests', function () {
     }
 
     // Abort move.
-    await this.browser.keys(Key.Escape);
+    await sendKeyAndWait(this.browser, Key.Escape);
   });
 });
 

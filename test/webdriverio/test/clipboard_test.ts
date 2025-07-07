@@ -17,6 +17,7 @@ import {
   focusOnBlock,
   focusOnBlockField,
   blockIsPresent,
+  sendKeyAndWait,
 } from './test_setup.js';
 import {Key, KeyAction, PointerAction, WheelAction} from 'webdriverio';
 
@@ -27,7 +28,6 @@ suite('Clipboard test', function () {
   // Clear the workspace and load start blocks
   setup(async function () {
     this.browser = await testSetup(testFileLocations.BASE);
-    await this.browser.pause(PAUSE_TIME);
   });
 
   test('Copy and paste while block selected', async function () {
@@ -36,9 +36,8 @@ suite('Clipboard test', function () {
     await focusOnBlock(this.browser, 'draw_circle_1');
 
     // Copy and paste
-    await this.browser.keys([Key.Ctrl, 'c']);
-    await this.browser.keys([Key.Ctrl, 'v']);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'c']);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'v']);
 
     const block = await getBlockElementById(this.browser, 'draw_circle_1');
     const blocks = await getSameBlocks(this.browser, block);
@@ -58,11 +57,10 @@ suite('Clipboard test', function () {
     const block = await getBlockElementById(this.browser, 'draw_circle_1');
 
     // Cut and paste
-    await this.browser.keys([Key.Ctrl, 'x']);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'x']);
     await block.waitForExist({reverse: true});
-    await this.browser.keys([Key.Ctrl, 'v']);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'v']);
     await block.waitForExist();
-    await this.browser.pause(PAUSE_TIME);
 
     const blocks = await getSameBlocks(this.browser, block);
     const selectedId = await getSelectedBlockId(this.browser);
@@ -117,12 +115,10 @@ suite('Clipboard test', function () {
   test('Do not cut block while field editor is open', async function () {
     // Open a field editor
     await focusOnBlockField(this.browser, 'draw_circle_1_color', 'COLOUR');
-    await this.browser.pause(PAUSE_TIME);
-    await this.browser.keys(Key.Enter);
-    await this.browser.pause(PAUSE_TIME);
+    await sendKeyAndWait(this.browser, Key.Enter);
 
     // Try to cut block while field editor is open
-    await this.browser.keys([Key.Ctrl, 'x']);
+    await sendKeyAndWait(this.browser, [Key.Ctrl, 'x']);
 
     // Block is not deleted
     chai.assert.isTrue(

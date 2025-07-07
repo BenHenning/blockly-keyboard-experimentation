@@ -6,12 +6,11 @@
 
 import * as chai from 'chai';
 import * as Blockly from 'blockly/core';
-import {PAUSE_TIME, testFileLocations, testSetup} from './test_setup.js';
+import {testFileLocations, testSetup} from './test_setup.js';
 
 suite('HTML toasts', function () {
   setup(async function () {
     this.browser = await testSetup(testFileLocations.BASE);
-    await this.browser.pause(PAUSE_TIME);
   });
 
   test('Can be displayed', async function () {
