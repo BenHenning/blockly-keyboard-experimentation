@@ -6,18 +6,7 @@
 
 import * as chai from 'chai';
 import * as Blockly from 'blockly';
-import {
-  focusedTreeIsMainWorkspace,
-  focusOnBlock,
-  getCurrentFocusNodeId,
-  getFocusedBlockType,
-  testSetup,
-  testFileLocations,
-  tabNavigateToWorkspace,
-  keyRight,
-  keyDown,
-  sendKeyAndWait,
-} from './test_setup.js';
+import {testFileLocations, testSetup} from './test_setup.js';
 import {Key} from 'webdriverio';
 
 suite('Mutator navigation', function () {
@@ -26,14 +15,14 @@ suite('Mutator navigation', function () {
 
   // Setup Selenium for all of the tests
   setup(async function () {
-    this.browser = await testSetup(testFileLocations.NAVIGATION_TEST_BLOCKS);
+    this.testDriver = await testSetup(testFileLocations.NAVIGATION_TEST_BLOCKS);
     this.openMutator = async () => {
-      await tabNavigateToWorkspace(this.browser);
-      await focusOnBlock(this.browser, 'controls_if_1');
+      await this.testDriver.tabNavigateToWorkspace();
+      await this.testDriver.focusOnBlock('controls_if_1');
       // Navigate to the mutator icon
-      await keyRight(this.browser);
+      await this.testDriver.keyRight();
       // Activate the icon
-      await sendKeyAndWait(this.browser, Key.Enter);
+      await this.testDriver.sendKeyAndWait(Key.Enter);
     };
   });
 
@@ -41,64 +30,66 @@ suite('Mutator navigation', function () {
     await this.openMutator();
 
     // Main workspace should not be focused (because mutator workspace is)
-    const mainWorkspaceFocused = await focusedTreeIsMainWorkspace(this.browser);
+    const mainWorkspaceFocused =
+      await this.testDriver.focusedTreeIsMainWorkspace();
     chai.assert.isFalse(mainWorkspaceFocused);
 
     // The "if" placeholder block in the mutator should be focused
-    const focusedBlockType = await getFocusedBlockType(this.browser);
+    const focusedBlockType = await this.testDriver.getFocusedBlockType();
     chai.assert.equal(focusedBlockType, 'controls_if_if');
   });
 
   test('Escape dismisses mutator', async function () {
     await this.openMutator();
-    await sendKeyAndWait(this.browser, Key.Escape);
+    await this.testDriver.sendKeyAndWait(Key.Escape);
 
     // Main workspace should be the focused tree (since mutator workspace is gone)
-    const mainWorkspaceFocused = await focusedTreeIsMainWorkspace(this.browser);
+    const mainWorkspaceFocused =
+      await this.testDriver.focusedTreeIsMainWorkspace();
     chai.assert.isTrue(mainWorkspaceFocused);
 
-    const mutatorIconId = await this.browser.execute(() => {
+    const mutatorIconId = await this.testDriver.browser.execute(() => {
       const block = Blockly.getMainWorkspace().getBlockById('controls_if_1');
       const icon = block?.getIcon(Blockly.icons.IconType.MUTATOR);
       return icon?.getFocusableElement().id;
     });
 
     // Mutator icon should now be focused
-    const focusedNodeId = await getCurrentFocusNodeId(this.browser);
+    const focusedNodeId = await this.testDriver.getCurrentFocusNodeId();
     chai.assert.equal(mutatorIconId, focusedNodeId);
   });
 
   test('Escape in the mutator flyout focuses the mutator workspace', async function () {
     await this.openMutator();
     // Focus the flyout
-    await sendKeyAndWait(this.browser, 't');
+    await this.testDriver.sendKeyAndWait('t');
     // Hit escape to return focus to the mutator workspace
-    await sendKeyAndWait(this.browser, Key.Escape);
+    await this.testDriver.sendKeyAndWait(Key.Escape);
     // The "if" placeholder block in the mutator should be focused
-    const focusedBlockType = await getFocusedBlockType(this.browser);
+    const focusedBlockType = await this.testDriver.getFocusedBlockType();
     chai.assert.equal(focusedBlockType, 'controls_if_if');
   });
 
   test('T focuses the mutator flyout', async function () {
     await this.openMutator();
-    await sendKeyAndWait(this.browser, 't');
+    await this.testDriver.sendKeyAndWait('t');
 
     // The "else if" block in the mutator flyout should be focused
-    const focusedBlockType = await getFocusedBlockType(this.browser);
+    const focusedBlockType = await this.testDriver.getFocusedBlockType();
     chai.assert.equal(focusedBlockType, 'controls_if_elseif');
   });
 
   test('Blocks can be inserted from the mutator flyout', async function () {
     await this.openMutator();
-    await sendKeyAndWait(this.browser, 't');
+    await this.testDriver.sendKeyAndWait('t');
     // Navigate down to the second block in the flyout
-    await keyDown(this.browser);
+    await this.testDriver.keyDown();
     // Hit enter to enter insert mode
-    await sendKeyAndWait(this.browser, Key.Enter);
+    await this.testDriver.sendKeyAndWait(Key.Enter);
     // Hit enter again to lock it into place on the connection
-    await sendKeyAndWait(this.browser, Key.Enter);
+    await this.testDriver.sendKeyAndWait(Key.Enter);
 
-    const topBlocks = await this.browser.execute(() => {
+    const topBlocks = await this.testDriver.browser.execute(() => {
       const focusedTree = Blockly.getFocusManager().getFocusedTree();
       if (!(focusedTree instanceof Blockly.WorkspaceSvg)) {
         throw new Error('Focused tree is not a workspace.');

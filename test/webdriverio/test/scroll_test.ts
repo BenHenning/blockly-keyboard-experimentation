@@ -7,15 +7,7 @@
 import * as Blockly from 'blockly';
 import * as chai from 'chai';
 import {Key} from 'webdriverio';
-import {
-  keyDown,
-  keyRight,
-  PAUSE_TIME,
-  sendKeyAndWait,
-  tabNavigateToWorkspace,
-  testFileLocations,
-  testSetup,
-} from './test_setup.js';
+import {testFileLocations, testSetup} from './test_setup.js';
 
 suite('Scrolling into view', function () {
   // Setting timeout to unlimited as these tests take longer time to run
@@ -23,22 +15,22 @@ suite('Scrolling into view', function () {
 
   // Clear the workspace and load start blocks
   setup(async function () {
-    this.browser = await testSetup(testFileLocations.BASE);
+    this.testDriver = await testSetup(testFileLocations.BASE);
     // Predictable small window size for scrolling.
-    this.browser.setWindowSize(800, 600);
-    await this.browser.pause(PAUSE_TIME);
+    this.testDriver.browser.setWindowSize(800, 600);
+    await this.testDriver.pause();
   });
 
   test('Insert scrolls new block into view', async function () {
-    await tabNavigateToWorkspace(this.browser);
+    await this.testDriver.tabNavigateToWorkspace();
 
     // Separate the two top-level blocks by moving p5_draw_1 further down.
-    await keyDown(this.browser, 3);
-    await sendKeyAndWait(this.browser, 'm');
-    await sendKeyAndWait(this.browser, [Key.Alt, Key.ArrowDown], 25);
-    await sendKeyAndWait(this.browser, Key.Enter);
+    await this.testDriver.keyDown(3);
+    await this.testDriver.sendKeyAndWait('m');
+    await this.testDriver.sendKeyAndWait([Key.Alt, Key.ArrowDown], 25);
+    await this.testDriver.sendKeyAndWait(Key.Enter);
     // Scroll back up, leaving cursor on the draw block out of the viewport.
-    await this.browser.execute(() => {
+    await this.testDriver.browser.execute(() => {
       const workspace = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
       workspace.scrollBoundsIntoView(
         (
@@ -48,12 +40,12 @@ suite('Scrolling into view', function () {
     });
 
     // Insert and confirm the test block which should be scrolled into view.
-    await sendKeyAndWait(this.browser, 't');
-    await keyRight(this.browser);
-    await sendKeyAndWait(this.browser, Key.Enter, 2);
+    await this.testDriver.sendKeyAndWait('t');
+    await this.testDriver.keyRight();
+    await this.testDriver.sendKeyAndWait(Key.Enter, 2);
 
     // Assert new block has been scrolled into the viewport.
-    const inViewport = await this.browser.execute(() => {
+    const inViewport = await this.testDriver.browser.execute(() => {
       const workspace = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
       const block = workspace.getBlocksByType(
         'controls_if',

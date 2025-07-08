@@ -6,16 +6,7 @@
 
 import * as chai from 'chai';
 import {Key} from 'webdriverio';
-import {
-  contextMenuExists,
-  moveToToolboxCategory,
-  focusOnBlock,
-  tabNavigateToWorkspace,
-  testFileLocations,
-  testSetup,
-  keyRight,
-  sendKeyAndWait,
-} from './test_setup.js';
+import {testFileLocations, testSetup} from './test_setup.js';
 
 suite('Menus test', function () {
   // Setting timeout to unlimited as these tests take longer time to run
@@ -23,45 +14,45 @@ suite('Menus test', function () {
 
   // Clear the workspace and load start blocks
   setup(async function () {
-    this.browser = await testSetup(testFileLocations.BASE);
+    this.testDriver = await testSetup(testFileLocations.BASE);
   });
 
   test('Menu action opens menu', async function () {
     // Navigate to draw_circle_1.
-    await tabNavigateToWorkspace(this.browser);
-    await focusOnBlock(this.browser, 'draw_circle_1');
-    await sendKeyAndWait(this.browser, [Key.Ctrl, Key.Return]);
+    await this.testDriver.tabNavigateToWorkspace();
+    await this.testDriver.focusOnBlock('draw_circle_1');
+    await this.testDriver.sendKeyAndWait([Key.Ctrl, Key.Return]);
     chai.assert.isTrue(
-      await contextMenuExists(this.browser, 'Collapse Block'),
+      await this.testDriver.contextMenuExists('Collapse Block'),
       'The menu should be openable on a block',
     );
   });
 
   test('Menu action returns true in the toolbox', async function () {
     // Navigate to draw_circle_1.
-    await tabNavigateToWorkspace(this.browser);
-    await focusOnBlock(this.browser, 'draw_circle_1');
+    await this.testDriver.tabNavigateToWorkspace();
+    await this.testDriver.focusOnBlock('draw_circle_1');
     // Navigate to a toolbox category
-    await moveToToolboxCategory(this.browser, 'Functions');
+    await this.testDriver.moveToToolboxCategory('Functions');
     // Move to flyout.
-    await keyRight(this.browser);
-    await sendKeyAndWait(this.browser, [Key.Ctrl, Key.Return]);
+    await this.testDriver.keyRight();
+    await this.testDriver.sendKeyAndWait([Key.Ctrl, Key.Return]);
 
     chai.assert.isTrue(
-      await contextMenuExists(this.browser, 'Help'),
+      await this.testDriver.contextMenuExists('Help'),
       'The menu should be openable on a block in the toolbox',
     );
   });
 
   test('Menu action returns false during drag', async function () {
     // Navigate to draw_circle_1.
-    await tabNavigateToWorkspace(this.browser);
-    await focusOnBlock(this.browser, 'draw_circle_1');
+    await this.testDriver.tabNavigateToWorkspace();
+    await this.testDriver.focusOnBlock('draw_circle_1');
     // Start moving the block
-    await sendKeyAndWait(this.browser, 'm');
-    await sendKeyAndWait(this.browser, [Key.Ctrl, Key.Return]);
+    await this.testDriver.sendKeyAndWait('m');
+    await this.testDriver.sendKeyAndWait([Key.Ctrl, Key.Return]);
     chai.assert.isTrue(
-      await contextMenuExists(this.browser, 'Collapse Block', true),
+      await this.testDriver.contextMenuExists('Collapse Block', true),
       'The menu should not be openable during a move',
     );
   });

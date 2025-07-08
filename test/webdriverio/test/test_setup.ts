@@ -26,6 +26,9 @@ import {fileURLToPath} from 'url';
  */
 let driver: webdriverio.Browser | null = null;
 
+// TODO: Have this self-manage its state using statics.
+let testDriver: TestDriver | null = null;
+
 /**
  * The default amount of time to wait during a test. Increase this to make
  * tests easier to watch; decrease it to make tests run faster.
@@ -71,6 +74,9 @@ export async function driverSetup(): Promise<webdriverio.Browser> {
   // Use Selenium to bring up the page
   console.log('Starting webdriverio...');
   driver = await webdriverio.remote(options);
+
+  testDriver = new TestDriver(driver);
+
   return driver;
 }
 
@@ -94,7 +100,7 @@ export async function driverTeardown() {
  */
 export async function testSetup(
   playgroundUrl: string,
-): Promise<webdriverio.Browser> {
+): Promise<TestDriver> {
   if (!driver) {
     driver = await driverSetup();
   }
@@ -103,22 +109,7 @@ export async function testSetup(
   await driver
     .$('.blocklySvg .blocklyWorkspace > .blocklyBlockCanvas')
     .waitForExist({timeout: 2000});
-  return driver;
-}
-
-/**
- * Replaces OS-specific path with POSIX style path.
- *
- * Simplified implementation based on
- * https://stackoverflow.com/a/63251716/4969945
- *
- * @param target target path
- * @returns posix path
- */
-function posixPath(target: string): string {
-  const result = target.split(path.sep).join(path.posix.sep);
-  console.log(result);
-  return result;
+  return testDriver!!;
 }
 
 // Relative to dist folder for TS build
@@ -151,510 +142,446 @@ export const testFileLocations = {
 };
 
 /**
- * Copied from blockly browser test_setup.mjs and amended for typescript
+ * Replaces OS-specific path with POSIX style path.
  *
- * @param browser The active WebdriverIO Browser object.
- * @returns A Promise that resolves to the ID of the currently selected block.
+ * Simplified implementation based on
+ * https://stackoverflow.com/a/63251716/4969945
+ *
+ * @param target target path
+ * @returns posix path
  */
-export async function getSelectedBlockId(browser: WebdriverIO.Browser) {
-  return await browser.execute(() => {
-    // Note: selected is an ICopyable and I am assuming that it is a BlockSvg.
-    return Blockly.common.getSelected()?.id;
-  });
-}
-
-/**
- * Clicks in the workspace to focus it.
- *
- * @param browser The active WebdriverIO Browser object.
- */
-export async function focusWorkspace(browser: WebdriverIO.Browser) {
-  const workspaceElement = await browser.$(
-    '#blocklyDiv > div > svg.blocklySvg > g',
-  );
-  await workspaceElement.click();
-}
-
-/**
- * Focuses the toolbox category with the given name.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param category The name of the toolbox category to focus.
- */
-export async function moveToToolboxCategory(
-  browser: WebdriverIO.Browser,
-  category: string,
-) {
-  await browser.keys('t');
-  const categoryIndex = await browser.execute((category) => {
-    const all = Array.from(
-      document.querySelectorAll('.blocklyToolboxCategoryLabel'),
-    ).map((node) => node.textContent);
-    return all.indexOf(category);
-  }, category);
-  if (categoryIndex < 0) {
-    throw new Error(`No category found: ${category}`);
-  }
-  if (categoryIndex > 0) await keyDown(browser, categoryIndex);
-}
-
-/**
- * Returns whether the workspace contains a block with the given id.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param blockId The id of the block.
- */
-export async function blockIsPresent(
-  browser: WebdriverIO.Browser,
-  blockId: string,
-): Promise<boolean> {
-  return await browser.execute((blockId) => {
-    const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-    const block = workspaceSvg.getBlockById(blockId);
-    return block !== null;
-  }, blockId);
-}
-
-/**
- * Returns whether the main workspace is the current focus.
- *
- * @param browser The active WebdriverIO Browser object.
- */
-export async function currentFocusIsMainWorkspace(
-  browser: WebdriverIO.Browser,
-): Promise<boolean> {
-  return await browser.execute(() => {
-    const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-    return Blockly.getFocusManager().getFocusedNode() === workspaceSvg;
-  });
-}
-
-/**
- * Returns whether the currently focused tree is the main workspace.
- *
- * @param browser The active WebdriverIO Browser object.
- */
-export async function focusedTreeIsMainWorkspace(
-  browser: WebdriverIO.Browser,
-): Promise<boolean> {
-  return await browser.execute(() => {
-    const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-    return Blockly.getFocusManager().getFocusedTree() === workspaceSvg;
-  });
-}
-
-/**
- * Focuses and selects a block with the provided ID.
- *
- * This throws an error if no block exists for the specified ID.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param blockId The ID of the block to select.
- */
-export async function focusOnBlock(
-  browser: WebdriverIO.Browser,
-  blockId: string,
-) {
-  return await browser.execute((blockId) => {
-    const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-    const block = workspaceSvg.getBlockById(blockId);
-    if (!block) throw new Error(`No block found with ID: ${blockId}.`);
-    Blockly.getFocusManager().focusNode(block);
-  }, blockId);
-}
-
-/**
- * Focuses and selects a workspace comment with the provided ID.
- *
- * This throws an error if no workspace comment exists for the specified ID.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param commentId The ID of the workspace comment to select.
- */
-export async function focusOnWorkspaceComment(
-  browser: WebdriverIO.Browser,
-  commentId: string,
-) {
-  return await browser.execute((commentId) => {
-    const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-    const comment = workspaceSvg.getCommentById(commentId);
-    if (!comment) {
-      throw new Error(`No workspace comment found with ID: ${commentId}.`);
-    }
-    Blockly.getFocusManager().focusNode(comment);
-  }, commentId);
-}
-
-/**
- * Focuses and selects the field of a block given a block ID and field name.
- *
- * This throws an error if no block exists for the specified ID, or if the block
- * corresponding to the specified ID has no field with the provided name.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param blockId The ID of the block to select.
- * @param fieldName The name of the field on the block to select.
- */
-export async function focusOnBlockField(
-  browser: WebdriverIO.Browser,
-  blockId: string,
-  fieldName: string,
-) {
-  return await browser.execute(
-    (blockId, fieldName) => {
-      const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-      const block = workspaceSvg.getBlockById(blockId);
-      if (!block) throw new Error(`No block found with ID: ${blockId}.`);
-      const field = block.getField(fieldName);
-      if (!field) {
-        throw new Error(`No field found: ${fieldName} (block ${blockId}).`);
-      }
-      Blockly.getFocusManager().focusNode(field);
-    },
-    blockId,
-    fieldName,
-  );
-}
-
-/**
- * Get the ID of the node that is currently focused.
- *
- * @param browser The active WebdriverIO Browser object.
- * @returns A Promise that resolves to the ID of the current cursor node.
- */
-export async function getCurrentFocusNodeId(
-  browser: WebdriverIO.Browser,
-): Promise<string | undefined> {
-  return await browser.execute(() => {
-    return Blockly.getFocusManager().getFocusedNode()?.getFocusableElement()
-      ?.id;
-  });
-}
-
-/**
- * Get the ID of the block that is currently focused.
- *
- * @param browser The active WebdriverIO Browser object.
- * @returns A Promise that resolves to the ID of the currently focused block.
- */
-export async function getCurrentFocusedBlockId(
-  browser: WebdriverIO.Browser,
-): Promise<string | undefined> {
-  return await browser.execute(() => {
-    const focusedNode = Blockly.getFocusManager().getFocusedNode();
-    if (focusedNode && focusedNode instanceof Blockly.BlockSvg) {
-      return focusedNode.id;
-    }
-    return undefined;
-  });
-}
-
-/**
- * Get the block type of the current focused node. Assumes the current node
- * is a block.
- *
- * @param browser The active WebdriverIO Browser object.
- * @returns A Promise that resolves to the block type of the current cursor
- * node.
- */
-export async function getFocusedBlockType(
-  browser: WebdriverIO.Browser,
-): Promise<string | undefined> {
-  return await browser.execute(() => {
-    const block = Blockly.getFocusManager().getFocusedNode() as
-      | Blockly.BlockSvg
-      | undefined;
-    return block?.type;
-  });
-}
-
-/**
- * Get the connection type of the current focused node. Assumes the current node
- * is a connection.
- *
- * @param browser The active WebdriverIO Browser object.
- * @returns A Promise that resolves to the connection type of the current cursor
- * node.
- */
-export async function getFocusedConnectionType(
-  browser: WebdriverIO.Browser,
-): Promise<number | undefined> {
-  return await browser.execute(() => {
-    const connection =
-      Blockly.getFocusManager().getFocusedNode() as Blockly.RenderedConnection;
-    return connection.type;
-  });
-}
-
-/**
- * Get the field name of the current focused node. Assumes the current node
- * is a field.
- *
- * @param browser The active WebdriverIO Browser object.
- * @returns A Promise that resolves to the field name of the current focused
- * node.
- */
-export async function getFocusedFieldName(
-  browser: WebdriverIO.Browser,
-): Promise<string | undefined> {
-  return await browser.execute(() => {
-    const field = Blockly.getFocusManager().getFocusedNode() as Blockly.Field;
-    return field.name;
-  });
+function posixPath(target: string): string {
+  const result = target.split(path.sep).join(path.posix.sep);
+  console.log(result);
+  return result;
 }
 
 export interface ElementWithId extends WebdriverIO.Element {
   id: string;
 }
 
-/**
- * Copied from blockly browser test_setup.mjs and amended for typescript
- *
- * @param browser The active WebdriverIO Browser object.
- * @param id The ID of the Blockly block to search for.
- * @returns A Promise that resolves to the root SVG element of the block with
- *     the given ID, as an interactable browser element.
- */
-export async function getBlockElementById(
-  browser: WebdriverIO.Browser,
-  id: string,
-) {
-  const elem = (await browser.$(
-    `[data-id="${id}"]`,
-  )) as unknown as ElementWithId;
-  elem['id'] = id;
-  return elem;
-}
+export class TestDriver {
+  constructor(public browser: WebdriverIO.Browser) {}
 
-/**
- * Uses tabs to navigate to the workspace on the test page (i.e. by going
- * through top-level tab stops).
- *
- * @param browser The active WebdriverIO Browser object.
- * @param hasToolbox Whether a toolbox is configured on the test page.
- * @param hasFlyout Whether a flyout is configured on the test page.
- */
-export async function tabNavigateToWorkspace(
-  browser: WebdriverIO.Browser,
-  hasToolbox = true,
-  hasFlyout = true,
-) {
-  // Navigate past the initial pre-injection focusable div element.
-  tabNavigateForward(browser);
-  if (hasToolbox) tabNavigateForward(browser);
-  if (hasFlyout) tabNavigateForward(browser);
-  tabNavigateForward(browser); // Tab to the workspace itself.
-}
-
-/**
- * Uses tabs to navigate to the toolbox on the test page (i.e. by going
- * through top-level tab stops). Assumes initial load tab position.
- *
- * @param browser The active WebdriverIO Browser object.
- */
-export async function tabNavigateToToolbox(browser: WebdriverIO.Browser) {
-  // Initial pre-injection focusable div element.
-  await tabNavigateForward(browser);
-  // Toolbox.
-  await tabNavigateForward(browser);
-}
-
-/**
- * Navigates forward to the test page's next tab stop.
- *
- * @param browser The active WebdriverIO Browser object.
- */
-export async function tabNavigateForward(browser: WebdriverIO.Browser) {
-  await sendKeyAndWait(browser, webdriverio.Key.Tab);
-}
-
-/**
- * Navigates backward to the test page's previous tab stop.
- *
- * @param browser The active WebdriverIO Browser object.
- */
-export async function tabNavigateBackward(browser: WebdriverIO.Browser) {
-  await sendKeyAndWait(browser, [webdriverio.Key.Shift, webdriverio.Key.Tab]);
-}
-
-/**
- * Sends the keyboard event for arrow key left.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param times The number of times to repeat the key press (default is 1).
- */
-export async function keyLeft(browser: WebdriverIO.Browser, times = 1) {
-  await sendKeyAndWait(browser, webdriverio.Key.ArrowLeft, times);
-}
-
-/**
- * Sends the keyboard event for arrow key right.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param times The number of times to repeat the key press (default is 1).
- */
-export async function keyRight(browser: WebdriverIO.Browser, times = 1) {
-  await sendKeyAndWait(browser, webdriverio.Key.ArrowRight, times);
-}
-
-/**
- * Sends the keyboard event for arrow key up.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param times The number of times to repeat the key press (default is 1).
- */
-export async function keyUp(browser: WebdriverIO.Browser, times = 1) {
-  await sendKeyAndWait(browser, webdriverio.Key.ArrowUp, times);
-}
-
-/**
- * Sends the keyboard event for arrow key down.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param times The number of times to repeat the key press (default is 1).
- */
-export async function keyDown(browser: WebdriverIO.Browser, times = 1) {
-  await sendKeyAndWait(browser, webdriverio.Key.ArrowDown, times);
-}
-
-/**
- * Sends the specified key(s) for the specified number of times,
- * waiting between each key press to allow changes to keep up.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param keys The WebdriverIO representative key value(s) to press.
- * @param times The number of times to repeat the key press (default 1).
- */
-export async function sendKeyAndWait(
-  browser: WebdriverIO.Browser,
-  keys: string | string[],
-  times = 1,
-) {
-  for (let i = 0; i < times; i++) {
-    await browser.keys(keys);
-    await browser.pause(PAUSE_TIME);
+  async pause() {
+    await this.browser.pause(PAUSE_TIME);
   }
-}
 
-/**
- * Returns whether there's a drag in progress on the main workspace.
- *
- * @param browser The active WebdriverIO Browser object.
- */
-export async function isDragging(
-  browser: WebdriverIO.Browser,
-): Promise<boolean> {
-  return await browser.execute(() => {
-    const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-    return workspaceSvg.isDragging();
-  });
-}
-
-/**
- * Returns the result of the specificied action precondition.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param action The action to check the precondition for.
- */
-export async function checkActionPrecondition(
-  browser: WebdriverIO.Browser,
-  action: string,
-): Promise<boolean> {
-  return await browser.execute((action) => {
-    const node = Blockly.getFocusManager().getFocusedNode();
-    let workspace;
-    if (node instanceof Blockly.BlockSvg) {
-      workspace = node.workspace as Blockly.WorkspaceSvg;
-    } else if (node instanceof Blockly.Workspace) {
-      workspace = node as Blockly.WorkspaceSvg;
-    } else if (node instanceof Blockly.Field) {
-      workspace = node.getSourceBlock()?.workspace as Blockly.WorkspaceSvg;
-    }
-
-    if (!workspace) {
-      throw new Error('Unable to derive workspace from focused node');
-    }
-    const actionItem = Blockly.ShortcutRegistry.registry.getRegistry()[action];
-    if (!actionItem || !actionItem.preconditionFn) {
-      throw new Error(
-        `No registered action or missing precondition: ${action}`,
-      );
-    }
-    return actionItem.preconditionFn(workspace, {
-      focusedNode: node ?? undefined,
+  /**
+   * Copied from blockly browser test_setup.mjs and amended for typescript
+   *
+   * @returns A Promise that resolves to the ID of the currently selected block.
+   */
+  async getSelectedBlockId(): Promise<string | undefined> {
+    return await this.browser.execute(() => {
+      // Note: selected is an ICopyable and I am assuming that it is a BlockSvg.
+      return Blockly.common.getSelected()?.id;
     });
-  }, action);
-}
+  }
 
-/**
- * Wait for the specified context menu item to exist.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param itemText The display text of the context menu item to click.
- * @param reverse Whether to check for non-existence instead.
- * @return A Promise that resolves when the actions are completed.
- */
-export async function contextMenuExists(
-  browser: WebdriverIO.Browser,
-  itemText: string,
-  reverse = false,
-): Promise<boolean> {
-  const item = await browser.$(`div=${itemText}`);
-  return await item.waitForExist({timeout: 200, reverse: reverse});
-}
+  // TODO: Remove?
+  /** Clicks in the workspace to focus it. */
+  async focusWorkspace() {
+    const workspaceElement = this.browser.$(
+      '#blocklyDiv > div > svg.blocklySvg > g',
+    );
+    await workspaceElement.click();
+  }
 
-/**
- * Find a clickable element on the block and click it.
- * We can't always use the block's SVG root because clicking will always happen
- * in the middle of the block's bounds (including children) by default, which
- * causes problems if it has holes (e.g. statement inputs). Instead, this tries
- * to get the first text field on the block. It falls back on the block's SVG root.
- *
- * @param browser The active WebdriverIO Browser object.
- * @param blockId The id of the block to click, as an interactable element.
- * @param clickOptions The options to pass to webdriverio's element.click function.
- * @return A Promise that resolves when the actions are completed.
- */
-export async function clickBlock(
-  browser: WebdriverIO.Browser,
-  blockId: string,
-  clickOptions?: Partial<webdriverio.ClickOptions> | undefined,
-) {
-  const findableId = 'clickTargetElement';
-  // In the browser context, find the element that we want and give it a findable ID.
-  await browser.execute(
-    (blockId, newElemId) => {
-      const ws = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-      const block = ws.getBlockById(blockId) as Blockly.BlockSvg;
-      // Ensure the block we want to click is within the viewport.
-      ws.scrollBoundsIntoView(block.getBoundingRectangleWithoutChildren(), 10);
-      if (!block.isCollapsed()) {
-        for (const input of block.inputList) {
-          for (const field of input.fieldRow) {
-            if (field instanceof Blockly.FieldLabel) {
-              const svgRoot = field.getSvgRoot();
-              if (svgRoot) {
-                svgRoot.id = newElemId;
-                return;
+  /**
+   * Focuses the toolbox category with the given name.
+   *
+   * @param category The name of the toolbox category to focus.
+   */
+  async moveToToolboxCategory(category: string) {
+    await this.sendKeyAndWait('t');
+    const categoryIndex = await this.browser.execute((category) => {
+      const all = Array.from(
+        document.querySelectorAll('.blocklyToolboxCategoryLabel'),
+      ).map((node) => node.textContent);
+      return all.indexOf(category);
+    }, category);
+    if (categoryIndex < 0) {
+      throw new Error(`No category found: ${category}`);
+    }
+    if (categoryIndex > 0) await this.keyDown(categoryIndex);
+  }
+
+  /**
+   * Returns whether the workspace contains a block with the given id.
+   *
+   * @param blockId The id of the block.
+   */
+  async blockIsPresent(blockId: string): Promise<boolean> {
+    return await this.browser.execute((blockId) => {
+      const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
+      const block = workspaceSvg.getBlockById(blockId);
+      return block !== null;
+    }, blockId);
+  }
+
+  // TODO: Remove?
+  /** Returns whether the main workspace is the current focus. */
+  async currentFocusIsMainWorkspace(): Promise<boolean> {
+    return await this.browser.execute(() => {
+      const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
+      return Blockly.getFocusManager().getFocusedNode() === workspaceSvg;
+    });
+  }
+
+  /** Returns whether the currently focused tree is the main workspace. */
+  async focusedTreeIsMainWorkspace(): Promise<boolean> {
+    return await this.browser.execute(() => {
+      const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
+      return Blockly.getFocusManager().getFocusedTree() === workspaceSvg;
+    });
+  }
+
+  /**
+   * Focuses and selects a block with the provided ID.
+   *
+   * This throws an error if no block exists for the specified ID.
+   *
+   * @param blockId The ID of the block to select.
+   */
+  async focusOnBlock(blockId: string): Promise<void> {
+    return await this.browser.execute((blockId) => {
+      const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
+      const block = workspaceSvg.getBlockById(blockId);
+      if (!block) throw new Error(`No block found with ID: ${blockId}.`);
+      Blockly.getFocusManager().focusNode(block);
+    }, blockId);
+  }
+
+  /**
+   * Focuses and selects a workspace comment with the provided ID.
+   *
+   * This throws an error if no workspace comment exists for the specified ID.
+   *
+   * @param commentId The ID of the workspace comment to select.
+   */
+  async focusOnWorkspaceComment(commentId: string): Promise<void> {
+    return await this.browser.execute((commentId) => {
+      const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
+      const comment = workspaceSvg.getCommentById(commentId);
+      if (!comment) {
+        throw new Error(`No workspace comment found with ID: ${commentId}.`);
+      }
+      Blockly.getFocusManager().focusNode(comment);
+    }, commentId);
+  }
+
+  /**
+   * Focuses and selects the field of a block given a block ID and field name.
+   *
+   * This throws an error if no block exists for the specified ID, or if the
+   * block corresponding to the specified ID has no field with the provided
+   * name.
+   *
+   * @param blockId The ID of the block to select.
+   * @param fieldName The name of the field on the block to select.
+   */
+  async focusOnBlockField(blockId: string, fieldName: string): Promise<void> {
+    return await this.browser.execute(
+      (blockId, fieldName) => {
+        const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
+        const block = workspaceSvg.getBlockById(blockId);
+        if (!block) throw new Error(`No block found with ID: ${blockId}.`);
+        const field = block.getField(fieldName);
+        if (!field) {
+          throw new Error(`No field found: ${fieldName} (block ${blockId}).`);
+        }
+        Blockly.getFocusManager().focusNode(field);
+      },
+      blockId,
+      fieldName,
+    );
+  }
+
+  /**
+   * Get the ID of the node that is currently focused.
+   *
+   * @returns A Promise that resolves to the ID of the current cursor node.
+   */
+  async getCurrentFocusNodeId(): Promise<string | undefined> {
+    return await this.browser.execute(() => {
+      return Blockly.getFocusManager().getFocusedNode()?.getFocusableElement()
+        ?.id;
+    });
+  }
+
+  /**
+   * Get the ID of the block that is currently focused.
+   *
+   * @returns A Promise that resolves to the ID of the currently focused block.
+   */
+  async getCurrentFocusedBlockId(): Promise<string | undefined> {
+    return await this.browser.execute(() => {
+      const focusedNode = Blockly.getFocusManager().getFocusedNode();
+      if (focusedNode && focusedNode instanceof Blockly.BlockSvg) {
+        return focusedNode.id;
+      }
+      return undefined;
+    });
+  }
+
+  /**
+   * Get the block type of the current focused node.
+   *
+   * @returns A Promise that resolves to the block type of the current cursor
+   *     node, or undefined if the current node is not a block.
+   */
+  async getFocusedBlockType(): Promise<string | undefined> {
+    return await this.browser.execute(() => {
+      const focused = Blockly.getFocusManager().getFocusedNode();
+      const block = focused as Blockly.BlockSvg | null;
+      return block?.type;
+    });
+  }
+
+  // TODO: Remove?
+  /**
+   * Get the connection type of the current focused node.
+   *
+   * @returns A Promise that resolves to the connection type of the current
+   *     cursor node, or undefined if the current node is not a connection.
+   */
+  async getFocusedConnectionType(): Promise<number | undefined> {
+    return await this.browser.execute(() => {
+      const focused = Blockly.getFocusManager().getFocusedNode();
+      const connection = focused as Blockly.RenderedConnection | null;
+      return connection?.type;
+    });
+  }
+
+  /**
+   * Get the field name of the current focused node.
+   *
+   * @returns A Promise that resolves to the field name of the current focused
+   *     node, or undefined if the current node is not a field.
+   */
+  async getFocusedFieldName(): Promise<string | undefined> {
+    return await this.browser.execute(() => {
+      const focused = Blockly.getFocusManager().getFocusedNode();
+      const field = focused as Blockly.Field | null;
+      return field?.name;
+    });
+  }
+
+  /**
+   * Copied from blockly browser test_setup.mjs and amended for typescript
+   *
+   * @param id The ID of the Blockly block to search for.
+   * @returns A Promise that resolves to the root SVG element of the block with
+   *     the given ID, as an interactable browser element.
+   */
+  async getBlockElementById(id: string): Promise<ElementWithId> {
+    const elem = this.browser.$(
+      `[data-id="${id}"]`,
+    ) as unknown as ElementWithId;
+    elem['id'] = id;
+    return elem;
+  }
+
+  /**
+   * Uses tabs to navigate to the workspace on the test page (i.e. by going
+   * through top-level tab stops).
+   *
+   * @param hasToolbox Whether a toolbox is configured on the test page.
+   * @param hasFlyout Whether a flyout is configured on the test page.
+   */
+  async tabNavigateToWorkspace(hasToolbox = true, hasFlyout = true) {
+    // Navigate past the initial pre-injection focusable div element.
+    this.tabNavigateForward();
+    if (hasToolbox) this.tabNavigateForward();
+    if (hasFlyout) this.tabNavigateForward();
+    this.tabNavigateForward(); // Tab to the workspace itself.
+  }
+
+  /**
+   * Uses tabs to navigate to the toolbox on the test page (i.e. by going
+   * through top-level tab stops). Assumes initial load tab position.
+   */
+  async tabNavigateToToolbox() {
+    // Initial pre-injection focusable div element.
+    await this.tabNavigateForward();
+    // Toolbox.
+    await this.tabNavigateForward();
+  }
+
+  /** Navigates forward to the test page's next tab stop. */
+  async tabNavigateForward() {
+    await this.sendKeyAndWait(webdriverio.Key.Tab);
+  }
+
+  /** Navigates backward to the test page's previous tab stop. */
+  async tabNavigateBackward() {
+    await this.sendKeyAndWait([webdriverio.Key.Shift, webdriverio.Key.Tab]);
+  }
+
+  /**
+   * Sends the keyboard event for arrow key left.
+   *
+   * @param times The number of times to repeat the key press (default is 1).
+   */
+  async keyLeft(times = 1) {
+    await this.sendKeyAndWait(webdriverio.Key.ArrowLeft, times);
+  }
+
+  /**
+   * Sends the keyboard event for arrow key right.
+   *
+   * @param times The number of times to repeat the key press (default is 1).
+   */
+  async keyRight(times = 1) {
+    await this.sendKeyAndWait(webdriverio.Key.ArrowRight, times);
+  }
+
+  /**
+   * Sends the keyboard event for arrow key up.
+   *
+   * @param times The number of times to repeat the key press (default is 1).
+   */
+  async keyUp(times = 1) {
+    await this.sendKeyAndWait(webdriverio.Key.ArrowUp, times);
+  }
+
+  /**
+   * Sends the keyboard event for arrow key down.
+   *
+   * @param times The number of times to repeat the key press (default is 1).
+   */
+  async keyDown(times = 1) {
+    await this.sendKeyAndWait(webdriverio.Key.ArrowDown, times);
+  }
+
+  /**
+   * Sends the specified key(s) for the specified number of times,
+   * waiting between each key press to allow changes to keep up.
+   *
+   * @param keys The WebdriverIO representative key value(s) to press.
+   * @param times The number of times to repeat the key press (default 1).
+   */
+  async sendKeyAndWait(keys: string | string[], times = 1) {
+    for (let i = 0; i < times; i++) {
+      await this.browser.keys(keys);
+      await this.pause();
+    }
+  }
+
+  /** Returns whether there's a drag in progress on the main workspace. */
+  async isDragging(): Promise<boolean> {
+    return await this.browser.execute(() => {
+      const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
+      return workspaceSvg.isDragging();
+    });
+  }
+
+  // TODO: Remove?
+
+  /**
+   * Returns the result of the specificied action precondition.
+   *
+   * @param action The action to check the precondition for.
+   */
+  async checkActionPrecondition(action: string): Promise<boolean> {
+    return await this.browser.execute((action) => {
+      const node = Blockly.getFocusManager().getFocusedNode();
+      let workspace;
+      if (node instanceof Blockly.BlockSvg) {
+        workspace = node.workspace as Blockly.WorkspaceSvg;
+      } else if (node instanceof Blockly.Workspace) {
+        workspace = node as Blockly.WorkspaceSvg;
+      } else if (node instanceof Blockly.Field) {
+        workspace = node.getSourceBlock()?.workspace as Blockly.WorkspaceSvg;
+      }
+
+      if (!workspace) {
+        throw new Error('Unable to derive workspace from focused node');
+      }
+      const actionItem =
+        Blockly.ShortcutRegistry.registry.getRegistry()[action];
+      if (!actionItem || !actionItem.preconditionFn) {
+        throw new Error(
+          `No registered action or missing precondition: ${action}`,
+        );
+      }
+      return actionItem.preconditionFn(workspace, {
+        focusedNode: node ?? undefined,
+      });
+    }, action);
+  }
+
+  /**
+   * Wait for the specified context menu item to exist.
+   *
+   * @param itemText The display text of the context menu item to click.
+   * @param reverse Whether to check for non-existence instead.
+   * @return A Promise that resolves when the actions are completed.
+   */
+  async contextMenuExists(itemText: string, reverse = false): Promise<boolean> {
+    const item = this.browser.$(`div=${itemText}`);
+    return await item.waitForExist({timeout: 200, reverse: reverse});
+  }
+
+  /**
+   * Find a clickable element on the block and click it.
+   *
+   * We can't always use the block's SVG root because clicking will always
+   * happen in the middle of the block's bounds (including children) by default,
+   * which causes problems if it has holes (e.g. statement inputs). Instead,
+   * this tries to get the first text field on the block. It falls back on the
+   * block's SVG root.
+   *
+   * @param blockId The id of the block to click, as an interactable element.
+   * @param clickOptions The options to pass to webdriverio's element.click
+   *     function.
+   * @return A Promise that resolves when the actions are completed.
+   */
+  async clickBlock(
+    blockId: string,
+    clickOptions?: Partial<webdriverio.ClickOptions> | undefined,
+  ) {
+    const findableId = 'clickTargetElement';
+    // In the browser context, find the element that we want and give it a
+    // findable ID.
+    await this.browser.execute(
+      (blockId, newElemId) => {
+        const ws = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
+        const block = ws.getBlockById(blockId) as Blockly.BlockSvg;
+        // Ensure the block we want to click is within the viewport.
+        ws.scrollBoundsIntoView(
+          block.getBoundingRectangleWithoutChildren(),
+          10,
+        );
+        if (!block.isCollapsed()) {
+          for (const input of block.inputList) {
+            for (const field of input.fieldRow) {
+              if (field instanceof Blockly.FieldLabel) {
+                const svgRoot = field.getSvgRoot();
+                if (svgRoot) {
+                  svgRoot.id = newElemId;
+                  return;
+                }
               }
             }
           }
         }
-      }
-      // No label field found. Fall back to the block's SVG root.
-      block.getSvgRoot().id = newElemId;
-    },
-    blockId,
-    findableId,
-  );
+        // No label field found. Fall back to the block's SVG root.
+        block.getSvgRoot().id = newElemId;
+      },
+      blockId,
+      findableId,
+    );
 
-  // In the test context, get the Webdriverio Element that we've identified.
-  const elem = await browser.$(`#${findableId}`);
+    // In the test context, get the Webdriverio Element that we've identified.
+    const elem = this.browser.$(`#${findableId}`);
 
-  await elem.click(clickOptions);
+    await elem.click(clickOptions);
 
-  // In the browser context, remove the ID.
-  await browser.execute((elemId) => {
-    document.getElementById(elemId)?.removeAttribute('id');
-  }, findableId);
+    // In the browser context, remove the ID.
+    await this.browser.execute((elemId) => {
+      document.getElementById(elemId)?.removeAttribute('id');
+    }, findableId);
+  }
 }

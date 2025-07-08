@@ -10,14 +10,7 @@ import {
   testSetup,
   testFileLocations,
   PAUSE_TIME,
-  getBlockElementById,
-  getSelectedBlockId,
   ElementWithId,
-  tabNavigateToWorkspace,
-  focusOnBlock,
-  focusOnBlockField,
-  blockIsPresent,
-  sendKeyAndWait,
 } from './test_setup.js';
 import {Key, KeyAction, PointerAction, WheelAction} from 'webdriverio';
 
@@ -27,21 +20,21 @@ suite('Clipboard test', function () {
 
   // Clear the workspace and load start blocks
   setup(async function () {
-    this.browser = await testSetup(testFileLocations.BASE);
+    this.testDriver = await testSetup(testFileLocations.BASE);
   });
 
   test('Copy and paste while block selected', async function () {
     // Navigate to draw_circle_1.
-    await tabNavigateToWorkspace(this.browser);
-    await focusOnBlock(this.browser, 'draw_circle_1');
+    await this.testDriver.tabNavigateToWorkspace();
+    await this.testDriver.focusOnBlock('draw_circle_1');
 
     // Copy and paste
-    await sendKeyAndWait(this.browser, [Key.Ctrl, 'c']);
-    await sendKeyAndWait(this.browser, [Key.Ctrl, 'v']);
+    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'c']);
+    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'v']);
 
-    const block = await getBlockElementById(this.browser, 'draw_circle_1');
-    const blocks = await getSameBlocks(this.browser, block);
-    const selectedId = await getSelectedBlockId(this.browser);
+    const block = await this.testDriver.getBlockElementById('draw_circle_1');
+    const blocks = await getSameBlocks(this.testDriver.browser, block);
+    const selectedId = await this.testDriver.getSelectedBlockId();
     chai.assert.equal(await blocks.length, 2);
     chai.assert.equal(
       selectedId,
@@ -52,31 +45,32 @@ suite('Clipboard test', function () {
 
   test('Cut and paste while block selected', async function () {
     // Navigate to draw_circle_1.
-    await tabNavigateToWorkspace(this.browser);
-    await focusOnBlock(this.browser, 'draw_circle_1');
-    const block = await getBlockElementById(this.browser, 'draw_circle_1');
+    await this.testDriver.tabNavigateToWorkspace();
+    await this.testDriver.focusOnBlock('draw_circle_1');
+    const block = await this.testDriver.getBlockElementById('draw_circle_1');
 
     // Cut and paste
-    await sendKeyAndWait(this.browser, [Key.Ctrl, 'x']);
+    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'x']);
     await block.waitForExist({reverse: true});
-    await sendKeyAndWait(this.browser, [Key.Ctrl, 'v']);
+    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'v']);
     await block.waitForExist();
 
-    const blocks = await getSameBlocks(this.browser, block);
-    const selectedId = await getSelectedBlockId(this.browser);
+    const blocks = await getSameBlocks(this.testDriver.browser, block);
+    const selectedId = await this.testDriver.getSelectedBlockId();
 
     chai.assert.equal(await blocks.length, 1);
     chai.assert.equal(selectedId, await blocks[0].getAttribute('data-id'));
   });
 
   test('Copy and paste whilst dragging block', async function () {
-    const initialWsBlocks = await serializeWorkspaceBlocks(this.browser);
+    const initialWsBlocks =
+      await serializeWorkspaceBlocks(this.testDriver.browser);
 
     // Simultaneously drag block and Ctrl+C then Ctrl+V
     await performActionWhileDraggingBlock(
-      this.browser,
-      await getBlockElementById(this.browser, 'draw_circle_1'),
-      this.browser
+      this.testDriver.browser,
+      await this.testDriver.getBlockElementById('draw_circle_1'),
+      this.testDriver.browser
         .action('key')
         .down(Key.Ctrl)
         .down('c')
@@ -90,39 +84,41 @@ suite('Clipboard test', function () {
 
     chai.assert.deepEqual(
       initialWsBlocks,
-      await serializeWorkspaceBlocks(this.browser),
+      await serializeWorkspaceBlocks(this.testDriver.browser),
       'Blocks on the workspace should not have changed',
     );
   });
 
   test('Cut whilst dragging block', async function () {
-    const initialWsBlocks = await serializeWorkspaceBlocks(this.browser);
+    const initialWsBlocks =
+      await serializeWorkspaceBlocks(this.testDriver.browser);
 
     // Simultaneously drag block and Ctrl+X
     await performActionWhileDraggingBlock(
-      this.browser,
-      await getBlockElementById(this.browser, 'draw_circle_1'),
-      this.browser.action('key').down(Key.Ctrl).down('x').up(Key.Ctrl).up('x'),
+      this.testDriver.browser,
+      await this.testDriver.getBlockElementById('draw_circle_1'),
+      this.testDriver.browser.action('key')
+        .down(Key.Ctrl).down('x').up(Key.Ctrl).up('x'),
     );
 
     chai.assert.deepEqual(
       initialWsBlocks,
-      await serializeWorkspaceBlocks(this.browser),
+      await serializeWorkspaceBlocks(this.testDriver.browser),
       'Blocks on the workspace should not have changed',
     );
   });
 
   test('Do not cut block while field editor is open', async function () {
     // Open a field editor
-    await focusOnBlockField(this.browser, 'draw_circle_1_color', 'COLOUR');
-    await sendKeyAndWait(this.browser, Key.Enter);
+    await this.testDriver.focusOnBlockField('draw_circle_1_color', 'COLOUR');
+    await this.testDriver.sendKeyAndWait(Key.Enter);
 
     // Try to cut block while field editor is open
-    await sendKeyAndWait(this.browser, [Key.Ctrl, 'x']);
+    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'x']);
 
     // Block is not deleted
     chai.assert.isTrue(
-      await blockIsPresent(this.browser, 'draw_circle_1_color'),
+      await this.testDriver.blockIsPresent('draw_circle_1_color'),
     );
   });
 });

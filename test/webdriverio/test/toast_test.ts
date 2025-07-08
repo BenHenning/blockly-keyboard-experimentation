@@ -10,11 +10,11 @@ import {testFileLocations, testSetup} from './test_setup.js';
 
 suite('HTML toasts', function () {
   setup(async function () {
-    this.browser = await testSetup(testFileLocations.BASE);
+    this.testDriver = await testSetup(testFileLocations.BASE);
   });
 
   test('Can be displayed', async function () {
-    const equal = await this.browser.execute(() => {
+    const equal = await this.testDriver.browser.execute(() => {
       const element = document.createElement('div');
       element.id = 'testToast';
       element.innerHTML = 'This is a <b>test</b>';
