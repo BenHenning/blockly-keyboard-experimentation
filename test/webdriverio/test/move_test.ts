@@ -7,7 +7,7 @@
 import * as Blockly from 'blockly';
 import * as chai from 'chai';
 import {Browser, Key} from 'webdriverio';
-import {testFileLocations, testSetup} from './test_setup.js';
+import {TestPlayground, testSetup} from './test_setup.js';
 
 suite('Move tests', function () {
   // Setting timeout to unlimited as these tests take longer time to run
@@ -15,7 +15,7 @@ suite('Move tests', function () {
 
   // Clear the workspace and load start blocks
   setup(async function () {
-    this.testDriver = await testSetup(testFileLocations.MOVE_TEST_BLOCKS);
+    this.driver = await testSetup(TestPlayground.MOVE_TEST_BLOCKS);
   });
 
   // When a move of a statement block begins, it is expected that only
@@ -26,12 +26,12 @@ suite('Move tests', function () {
   test('Start moving statement blocks', async function () {
     for (let i = 1; i < 7; i++) {
       // Navigate to statement_<i>.
-      await this.testDriver.tabNavigateToWorkspace();
-      await this.testDriver.focusOnBlock(`statement_${i}`);
+      await this.driver.tabNavigateToWorkspace();
+      await this.driver.focusOnBlock(`statement_${i}`);
 
       // Get information about parent connection of selected block,
       // and block connected to selected block's next connection.
-      const info = await getFocusedNeighbourInfo(this.testDriver.browser);
+      const info = await getFocusedNeighbourInfo(this.driver.browser);
 
       chai.assert(info.parentId, 'selected block has no parent block');
       chai.assert(
@@ -41,12 +41,12 @@ suite('Move tests', function () {
       chai.assert(info.nextId, 'selected block has no next block');
 
       // Start move.
-      await this.testDriver.sendKeyAndWait('m');
+      await this.driver.sendKeyAndWait('m');
 
       // Check that the moving block has nothing connected it its
       // next/previous connections, and same thing connected to value
       // input.
-      const newInfo = await getFocusedNeighbourInfo(this.testDriver.browser);
+      const newInfo = await getFocusedNeighbourInfo(this.driver.browser);
       chai.assert(
         newInfo.parentId === null,
         'moving block should have no parent block',
@@ -65,7 +65,7 @@ suite('Move tests', function () {
       // connection of the currently-moving block (if any) is the one
       // that was attached to the moving block's next connection.
       const parentInfo = await getConnectedBlockInfo(
-        this.testDriver.browser,
+        this.driver.browser,
         info.parentId,
         info.parentIndex,
       );
@@ -76,7 +76,7 @@ suite('Move tests', function () {
       );
 
       // Abort move.
-      await this.testDriver.sendKeyAndWait(Key.Escape);
+      await this.driver.sendKeyAndWait(Key.Escape);
     }
   });
 
@@ -86,12 +86,12 @@ suite('Move tests', function () {
   test('Start moving value blocks', async function () {
     for (let i = 1; i < 7; i++) {
       // Navigate to statement_<i>.
-      await this.testDriver.tabNavigateToWorkspace();
-      await this.testDriver.focusOnBlock(`value_${i}`);
+      await this.driver.tabNavigateToWorkspace();
+      await this.driver.focusOnBlock(`value_${i}`);
 
       // Get information about parent connection of selected block,
       // and block connected to selected block's value input.
-      const info = await getFocusedNeighbourInfo(this.testDriver.browser);
+      const info = await getFocusedNeighbourInfo(this.driver.browser);
 
       chai.assert(info.parentId, 'selected block has no parent block');
       chai.assert(
@@ -101,12 +101,12 @@ suite('Move tests', function () {
       chai.assert(info.valueId, 'selected block has no child value block');
 
       // Start move.
-      await this.testDriver.sendKeyAndWait('m');
+      await this.driver.sendKeyAndWait('m');
 
       // Check that the moving block has nothing connected it its
       // next/previous connections, and same thing connected to value
       // input.
-      const newInfo = await getFocusedNeighbourInfo(this.testDriver.browser);
+      const newInfo = await getFocusedNeighbourInfo(this.driver.browser);
       chai.assert(
         newInfo.parentId === null,
         'moving block should have no parent block',
@@ -125,7 +125,7 @@ suite('Move tests', function () {
       // currently-moving block is either unconnected or connected to
       // a shadow block.
       const parentInfo = await getConnectedBlockInfo(
-        this.testDriver.browser,
+        this.driver.browser,
         info.parentId,
         info.parentIndex,
       );
@@ -135,7 +135,7 @@ suite('Move tests', function () {
       );
 
       // Abort move.
-      await this.testDriver.sendKeyAndWait(Key.Escape);
+      await this.driver.sendKeyAndWait(Key.Escape);
     }
   });
 
@@ -151,19 +151,19 @@ suite('Move tests', function () {
     const BLOCK = 'p5_setup_1';
 
     // Scale workspace.
-    await this.testDriver.browser.execute(() => {
+    await this.driver.browser.execute(() => {
       (Blockly.getMainWorkspace() as Blockly.WorkspaceSvg).setScale(0.9);
     });
 
     // Navigate to unconnectable block, get initial coords and start move.
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock(BLOCK);
-    const startCoordinate = await getCoordinate(this.testDriver.browser, BLOCK);
-    await this.testDriver.sendKeyAndWait('m');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock(BLOCK);
+    const startCoordinate = await getCoordinate(this.driver.browser, BLOCK);
+    await this.driver.sendKeyAndWait('m');
 
     // Check constrained moves have no effect.
-    await this.testDriver.keyDown(5);
-    const coordinate = await getCoordinate(this.testDriver.browser, BLOCK);
+    await this.driver.keyDown(5);
+    const coordinate = await getCoordinate(this.driver.browser, BLOCK);
     chai.assert.deepEqual(
       coordinate,
       startCoordinate,
@@ -171,9 +171,9 @@ suite('Move tests', function () {
     );
 
     // Unconstrained moves.
-    await this.testDriver.sendKeyAndWait([Key.Alt, Key.ArrowDown]);
-    await this.testDriver.sendKeyAndWait([Key.Alt, Key.ArrowRight]);
-    const newCoordinate = await getCoordinate(this.testDriver.browser, BLOCK);
+    await this.driver.sendKeyAndWait([Key.Alt, Key.ArrowDown]);
+    await this.driver.sendKeyAndWait([Key.Alt, Key.ArrowRight]);
+    const newCoordinate = await getCoordinate(this.driver.browser, BLOCK);
     chai.assert.notDeepEqual(
       newCoordinate,
       startCoordinate,
@@ -182,8 +182,8 @@ suite('Move tests', function () {
 
     // Try multiple constrained moves, as first might (correctly) do nothing.
     for (let i = 0; i < 5; i++) {
-      await this.testDriver.keyDown();
-      const coordinate = await getCoordinate(this.testDriver.browser, BLOCK);
+      await this.driver.keyDown();
+      const coordinate = await getCoordinate(this.driver.browser, BLOCK);
       chai.assert.deepEqual(
         coordinate,
         newCoordinate,
@@ -192,7 +192,7 @@ suite('Move tests', function () {
     }
 
     // Abort move.
-    await this.testDriver.sendKeyAndWait(Key.Escape);
+    await this.driver.sendKeyAndWait(Key.Escape);
   });
 });
 

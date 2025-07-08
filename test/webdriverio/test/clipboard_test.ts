@@ -8,9 +8,9 @@ import * as chai from 'chai';
 import * as Blockly from 'blockly';
 import {
   testSetup,
-  testFileLocations,
-  PAUSE_TIME,
   ElementWithId,
+  TestDriver,
+  TestPlayground,
 } from './test_setup.js';
 import {Key, KeyAction, PointerAction, WheelAction} from 'webdriverio';
 
@@ -20,21 +20,21 @@ suite('Clipboard test', function () {
 
   // Clear the workspace and load start blocks
   setup(async function () {
-    this.testDriver = await testSetup(testFileLocations.BASE);
+    this.driver = await testSetup(TestPlayground.BASE);
   });
 
   test('Copy and paste while block selected', async function () {
     // Navigate to draw_circle_1.
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('draw_circle_1');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('draw_circle_1');
 
     // Copy and paste
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'c']);
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'v']);
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'c']);
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'v']);
 
-    const block = await this.testDriver.getBlockElementById('draw_circle_1');
-    const blocks = await getSameBlocks(this.testDriver.browser, block);
-    const selectedId = await this.testDriver.getSelectedBlockId();
+    const block = await this.driver.getBlockElementById('draw_circle_1');
+    const blocks = await getSameBlocks(this.driver.browser, block);
+    const selectedId = await this.driver.getSelectedBlockId();
     chai.assert.equal(await blocks.length, 2);
     chai.assert.equal(
       selectedId,
@@ -45,32 +45,31 @@ suite('Clipboard test', function () {
 
   test('Cut and paste while block selected', async function () {
     // Navigate to draw_circle_1.
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('draw_circle_1');
-    const block = await this.testDriver.getBlockElementById('draw_circle_1');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('draw_circle_1');
+    const block = await this.driver.getBlockElementById('draw_circle_1');
 
     // Cut and paste
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'x']);
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'x']);
     await block.waitForExist({reverse: true});
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'v']);
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'v']);
     await block.waitForExist();
 
-    const blocks = await getSameBlocks(this.testDriver.browser, block);
-    const selectedId = await this.testDriver.getSelectedBlockId();
+    const blocks = await getSameBlocks(this.driver.browser, block);
+    const selectedId = await this.driver.getSelectedBlockId();
 
     chai.assert.equal(await blocks.length, 1);
     chai.assert.equal(selectedId, await blocks[0].getAttribute('data-id'));
   });
 
   test('Copy and paste whilst dragging block', async function () {
-    const initialWsBlocks =
-      await serializeWorkspaceBlocks(this.testDriver.browser);
+    const initialWsBlocks = await serializeWorkspaceBlocks(this.driver.browser);
 
     // Simultaneously drag block and Ctrl+C then Ctrl+V
     await performActionWhileDraggingBlock(
-      this.testDriver.browser,
-      await this.testDriver.getBlockElementById('draw_circle_1'),
-      this.testDriver.browser
+      this.driver,
+      await this.driver.getBlockElementById('draw_circle_1'),
+      this.driver.browser
         .action('key')
         .down(Key.Ctrl)
         .down('c')
@@ -84,42 +83,43 @@ suite('Clipboard test', function () {
 
     chai.assert.deepEqual(
       initialWsBlocks,
-      await serializeWorkspaceBlocks(this.testDriver.browser),
+      await serializeWorkspaceBlocks(this.driver.browser),
       'Blocks on the workspace should not have changed',
     );
   });
 
   test('Cut whilst dragging block', async function () {
-    const initialWsBlocks =
-      await serializeWorkspaceBlocks(this.testDriver.browser);
+    const initialWsBlocks = await serializeWorkspaceBlocks(this.driver.browser);
 
     // Simultaneously drag block and Ctrl+X
     await performActionWhileDraggingBlock(
-      this.testDriver.browser,
-      await this.testDriver.getBlockElementById('draw_circle_1'),
-      this.testDriver.browser.action('key')
-        .down(Key.Ctrl).down('x').up(Key.Ctrl).up('x'),
+      this.driver,
+      await this.driver.getBlockElementById('draw_circle_1'),
+      this.driver.browser
+        .action('key')
+        .down(Key.Ctrl)
+        .down('x')
+        .up(Key.Ctrl)
+        .up('x'),
     );
 
     chai.assert.deepEqual(
       initialWsBlocks,
-      await serializeWorkspaceBlocks(this.testDriver.browser),
+      await serializeWorkspaceBlocks(this.driver.browser),
       'Blocks on the workspace should not have changed',
     );
   });
 
   test('Do not cut block while field editor is open', async function () {
     // Open a field editor
-    await this.testDriver.focusOnBlockField('draw_circle_1_color', 'COLOUR');
-    await this.testDriver.sendKeyAndWait(Key.Enter);
+    await this.driver.focusOnBlockField('draw_circle_1_color', 'COLOUR');
+    await this.driver.sendKeyAndWait(Key.Enter);
 
     // Try to cut block while field editor is open
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'x']);
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'x']);
 
     // Block is not deleted
-    chai.assert.isTrue(
-      await this.testDriver.blockIsPresent('draw_circle_1_color'),
-    );
+    chai.assert.isTrue(await this.driver.blockIsPresent('draw_circle_1_color'));
   });
 });
 
@@ -142,21 +142,21 @@ async function getSameBlocks(
 /**
  * Perform actions whilst dragging a given block around.
  *
- * @param browser The active WebdriverIO Browser object.
+ * @param driver The active TestDriver.
  * @param blockToDrag The block to drag around.
  * @param action Action to perform whilst dragging block.
  * @returns A Promise that resolves once action completes.
  */
 async function performActionWhileDraggingBlock(
-  browser: WebdriverIO.Browser,
+  driver: TestDriver,
   blockToDrag: ElementWithId,
   action: KeyAction | PointerAction | WheelAction,
 ) {
   const blockLoc = await blockToDrag.getLocation();
   const blockX = Math.round(blockLoc.x);
   const blockY = Math.round(blockLoc.y);
-  await browser.actions([
-    browser
+  await driver.browser.actions([
+    driver.browser
       .action('pointer')
       .move(blockX, blockY)
       .down()
@@ -164,7 +164,7 @@ async function performActionWhileDraggingBlock(
       .move(blockX, blockY),
     action,
   ]);
-  await browser.pause(PAUSE_TIME);
+  await driver.pause();
 }
 
 /**

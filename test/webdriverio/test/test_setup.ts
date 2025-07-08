@@ -21,27 +21,16 @@ import * as webdriverio from 'webdriverio';
 import * as path from 'path';
 import {fileURLToPath} from 'url';
 
-/**
- * The webdriverio instance, which should only be initialized once.
- */
-let driver: webdriverio.Browser | null = null;
-
-// TODO: Have this self-manage its state using statics.
-let testDriver: TestDriver | null = null;
+/** The TestDriver wrapper instance, which should only be initialized once. */
+let driver: TestDriver | null = null;
 
 /**
- * The default amount of time to wait during a test. Increase this to make
- * tests easier to watch; decrease it to make tests run faster.
- */
-export const PAUSE_TIME = 50;
-
-/**
- * Start up the test page. This should only be done once, to avoid
- * constantly popping browser windows open and closed.
+ * Start up the test page. This should only be done once, to avoid constantly
+ * popping browser windows open and closed.
  *
- * @returns A Promise that resolves to a webdriverIO browser that tests can manipulate.
+ * Note that tests should never need to call this directly.
  */
-export async function driverSetup(): Promise<webdriverio.Browser> {
+export async function driverSetup() {
   const options = {
     capabilities: {
       'browserName': 'chrome',
@@ -73,11 +62,8 @@ export async function driverSetup(): Promise<webdriverio.Browser> {
   }
   // Use Selenium to bring up the page
   console.log('Starting webdriverio...');
-  driver = await webdriverio.remote(options);
 
-  testDriver = new TestDriver(driver);
-
-  return driver;
+  driver = new TestDriver(await webdriverio.remote(options));
 }
 
 /**
@@ -86,7 +72,7 @@ export async function driverSetup(): Promise<webdriverio.Browser> {
  * @return A Promise that resolves after the actions have been completed.
  */
 export async function driverTeardown() {
-  await driver?.deleteSession();
+  await driver?.browser.deleteSession();
   driver = null;
   return;
 }
@@ -94,22 +80,51 @@ export async function driverTeardown() {
 /**
  * Navigate to the correct URL for the test, using the shared driver.
  *
- * @param playgroundUrl The URL to open for the test, which should be
- *     a Blockly playground with a workspace.
- * @returns A Promise that resolves to a webdriverIO browser that tests can manipulate.
+ * @param playgroundType The test playground that should be opened for testing.
+ * @returns A Promise that resolves to a TestDriver that tests can manipulate.
  */
 export async function testSetup(
-  playgroundUrl: string,
+  playgroundType: TestPlayground,
 ): Promise<TestDriver> {
-  if (!driver) {
-    driver = await driverSetup();
+  const testDriver = driver;
+  if (!testDriver) {
+    throw new Error('WebdriverIO is unexpectedly not yet initialized.');
   }
-  await driver.url(playgroundUrl);
+  let playgroundUrl: string | null = null;
+  switch (playgroundType) {
+    case TestPlayground.BASE:
+      playgroundUrl = createTestUrl();
+      break;
+    case TestPlayground.NAVIGATION_TEST_BLOCKS:
+      playgroundUrl = createTestUrl(
+        new URLSearchParams({scenario: 'navigationTestBlocks'}),
+      );
+      break;
+    case TestPlayground.MOVE_TEST_BLOCKS:
+      playgroundUrl = createTestUrl(
+        new URLSearchParams({scenario: 'moveTestBlocks'}),
+      );
+      break;
+    case TestPlayground.BASE_RTL:
+      playgroundUrl = createTestUrl(new URLSearchParams({rtl: 'true'}));
+      break;
+    case TestPlayground.GERAS:
+      playgroundUrl = createTestUrl(new URLSearchParams({renderer: 'geras'}));
+      break;
+    case TestPlayground.GERAS_RTL:
+      playgroundUrl = createTestUrl(
+        new URLSearchParams({renderer: 'geras', rtl: 'true'}),
+      );
+      break;
+    default:
+      throw new Error(`Invalid playground type: ${playgroundType}.`);
+  }
+  await testDriver.browser.url(playgroundUrl);
   // Wait for the workspace to exist and be rendered.
-  await driver
+  await testDriver.browser
     .$('.blocklySvg .blocklyWorkspace > .blocklyBlockCanvas')
     .waitForExist({timeout: 2000});
-  return testDriver!!;
+  return testDriver;
 }
 
 // Relative to dist folder for TS build
@@ -122,24 +137,23 @@ const createTestUrl = (options?: URLSearchParams) => {
   return base.toString();
 };
 
-export const testFileLocations = {
-  BASE: createTestUrl(),
+/**
+ * Corresponds to test-specific playgrounds with preconfigured workspaces for
+ * various test scenarios.
+ */
+export enum TestPlayground {
+  BASE = 'base',
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  NAVIGATION_TEST_BLOCKS: createTestUrl(
-    new URLSearchParams({scenario: 'navigationTestBlocks'}),
-  ),
+  NAVIGATION_TEST_BLOCKS = 'navigation_test_blocks',
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  MOVE_TEST_BLOCKS: createTestUrl(
-    new URLSearchParams({scenario: 'moveTestBlocks'}),
-  ),
+  MOVE_TEST_BLOCKS = 'move_test_blocks',
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  BASE_RTL: createTestUrl(new URLSearchParams({rtl: 'true'})),
-  GERAS: createTestUrl(new URLSearchParams({renderer: 'geras'})),
+  BASE_RTL = 'base_rtl',
+
+  GERAS = 'geras',
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  GERAS_RTL: createTestUrl(
-    new URLSearchParams({renderer: 'geras', rtl: 'true'}),
-  ),
-};
+  GERAS_RTL = 'geras_rtl',
+}
 
 /**
  * Replaces OS-specific path with POSIX style path.
@@ -160,11 +174,37 @@ export interface ElementWithId extends WebdriverIO.Element {
   id: string;
 }
 
+/**
+ * A WebdriverIO.Browser wrapper object with common keyboard navigation-related
+ * test utilities.
+ *
+ * The underlying browser object can be referenced directly using this class's
+ * '.browser' property. Otherwise, commonly used utilities may be moved here to
+ * avoid code duplication across test suites and to simplify calling into the
+ * underlying WebdriverIO browser object (since it's only made accessible
+ * through instances of this driver class).
+ */
 export class TestDriver {
+  /**
+   * The default amount of time to wait during a test. Increase this to make
+   * tests easier to watch; decrease it to make tests run faster.
+   */
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  static readonly PAUSE_TIME = 50;
+
   constructor(public browser: WebdriverIO.Browser) {}
 
+  /**
+   * Pauses test execution for a brief period of time.
+   *
+   * This is useful to use when waiting for a short asynchronous operation, such
+   * as a brief timeout or a browser state update, to complete.
+   *
+   * Callers should aim to only use this function when necessary as many pauses
+   * will unnecessarily slow down tests.
+   */
   async pause() {
-    await this.browser.pause(PAUSE_TIME);
+    await this.browser.pause(TestDriver.PAUSE_TIME);
   }
 
   /**
@@ -177,15 +217,6 @@ export class TestDriver {
       // Note: selected is an ICopyable and I am assuming that it is a BlockSvg.
       return Blockly.common.getSelected()?.id;
     });
-  }
-
-  // TODO: Remove?
-  /** Clicks in the workspace to focus it. */
-  async focusWorkspace() {
-    const workspaceElement = this.browser.$(
-      '#blocklyDiv > div > svg.blocklySvg > g',
-    );
-    await workspaceElement.click();
   }
 
   /**
@@ -218,15 +249,6 @@ export class TestDriver {
       const block = workspaceSvg.getBlockById(blockId);
       return block !== null;
     }, blockId);
-  }
-
-  // TODO: Remove?
-  /** Returns whether the main workspace is the current focus. */
-  async currentFocusIsMainWorkspace(): Promise<boolean> {
-    return await this.browser.execute(() => {
-      const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
-      return Blockly.getFocusManager().getFocusedNode() === workspaceSvg;
-    });
   }
 
   /** Returns whether the currently focused tree is the main workspace. */
@@ -336,21 +358,6 @@ export class TestDriver {
       const focused = Blockly.getFocusManager().getFocusedNode();
       const block = focused as Blockly.BlockSvg | null;
       return block?.type;
-    });
-  }
-
-  // TODO: Remove?
-  /**
-   * Get the connection type of the current focused node.
-   *
-   * @returns A Promise that resolves to the connection type of the current
-   *     cursor node, or undefined if the current node is not a connection.
-   */
-  async getFocusedConnectionType(): Promise<number | undefined> {
-    return await this.browser.execute(() => {
-      const focused = Blockly.getFocusManager().getFocusedNode();
-      const connection = focused as Blockly.RenderedConnection | null;
-      return connection?.type;
     });
   }
 
@@ -475,41 +482,6 @@ export class TestDriver {
       const workspaceSvg = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
       return workspaceSvg.isDragging();
     });
-  }
-
-  // TODO: Remove?
-
-  /**
-   * Returns the result of the specificied action precondition.
-   *
-   * @param action The action to check the precondition for.
-   */
-  async checkActionPrecondition(action: string): Promise<boolean> {
-    return await this.browser.execute((action) => {
-      const node = Blockly.getFocusManager().getFocusedNode();
-      let workspace;
-      if (node instanceof Blockly.BlockSvg) {
-        workspace = node.workspace as Blockly.WorkspaceSvg;
-      } else if (node instanceof Blockly.Workspace) {
-        workspace = node as Blockly.WorkspaceSvg;
-      } else if (node instanceof Blockly.Field) {
-        workspace = node.getSourceBlock()?.workspace as Blockly.WorkspaceSvg;
-      }
-
-      if (!workspace) {
-        throw new Error('Unable to derive workspace from focused node');
-      }
-      const actionItem =
-        Blockly.ShortcutRegistry.registry.getRegistry()[action];
-      if (!actionItem || !actionItem.preconditionFn) {
-        throw new Error(
-          `No registered action or missing precondition: ${action}`,
-        );
-      }
-      return actionItem.preconditionFn(workspace, {
-        focusedNode: node ?? undefined,
-      });
-    }, action);
   }
 
   /**

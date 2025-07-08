@@ -7,7 +7,7 @@
 import * as Blockly from 'blockly';
 import * as chai from 'chai';
 import {Key} from 'webdriverio';
-import {testFileLocations, testSetup} from './test_setup.js';
+import {TestPlayground, testSetup} from './test_setup.js';
 
 suite('Scrolling into view', function () {
   // Setting timeout to unlimited as these tests take longer time to run
@@ -15,22 +15,22 @@ suite('Scrolling into view', function () {
 
   // Clear the workspace and load start blocks
   setup(async function () {
-    this.testDriver = await testSetup(testFileLocations.BASE);
+    this.driver = await testSetup(TestPlayground.BASE);
     // Predictable small window size for scrolling.
-    this.testDriver.browser.setWindowSize(800, 600);
-    await this.testDriver.pause();
+    this.driver.browser.setWindowSize(800, 600);
+    await this.driver.pause();
   });
 
   test('Insert scrolls new block into view', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
+    await this.driver.tabNavigateToWorkspace();
 
     // Separate the two top-level blocks by moving p5_draw_1 further down.
-    await this.testDriver.keyDown(3);
-    await this.testDriver.sendKeyAndWait('m');
-    await this.testDriver.sendKeyAndWait([Key.Alt, Key.ArrowDown], 25);
-    await this.testDriver.sendKeyAndWait(Key.Enter);
+    await this.driver.keyDown(3);
+    await this.driver.sendKeyAndWait('m');
+    await this.driver.sendKeyAndWait([Key.Alt, Key.ArrowDown], 25);
+    await this.driver.sendKeyAndWait(Key.Enter);
     // Scroll back up, leaving cursor on the draw block out of the viewport.
-    await this.testDriver.browser.execute(() => {
+    await this.driver.browser.execute(() => {
       const workspace = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
       workspace.scrollBoundsIntoView(
         (
@@ -40,12 +40,12 @@ suite('Scrolling into view', function () {
     });
 
     // Insert and confirm the test block which should be scrolled into view.
-    await this.testDriver.sendKeyAndWait('t');
-    await this.testDriver.keyRight();
-    await this.testDriver.sendKeyAndWait(Key.Enter, 2);
+    await this.driver.sendKeyAndWait('t');
+    await this.driver.keyRight();
+    await this.driver.sendKeyAndWait(Key.Enter, 2);
 
     // Assert new block has been scrolled into the viewport.
-    const inViewport = await this.testDriver.browser.execute(() => {
+    const inViewport = await this.driver.browser.execute(() => {
       const workspace = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
       const block = workspace.getBlocksByType(
         'controls_if',

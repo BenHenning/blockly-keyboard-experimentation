@@ -6,7 +6,7 @@
 
 import * as chai from 'chai';
 import * as Blockly from 'blockly';
-import {testFileLocations, testSetup} from './test_setup.js';
+import {TestPlayground, testSetup} from './test_setup.js';
 import {Key} from 'webdriverio';
 
 const isKeyboardNavigating = function (browser: WebdriverIO.Browser) {
@@ -23,101 +23,100 @@ suite(
 
     setup(async function () {
       // Reload the page between tests
-      this.testDriver = await testSetup(testFileLocations.NAVIGATION_TEST_BLOCKS);
+      this.driver = await testSetup(TestPlayground.NAVIGATION_TEST_BLOCKS);
 
       // Reset the keyboard navigation state between tests.
-      await this.testDriver.browser.execute(() => {
+      await this.driver.browser.execute(() => {
         Blockly.keyboardNavigationController.setIsActive(false);
       });
 
       // Start with the workspace focused.
-      await this.testDriver.tabNavigateToWorkspace();
+      await this.driver.tabNavigateToWorkspace();
     });
 
     test('T to open toolbox enables keyboard mode', async function () {
-      await this.testDriver.sendKeyAndWait('t');
+      await this.driver.sendKeyAndWait('t');
 
-      chai.assert.isTrue(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isTrue(await isKeyboardNavigating(this.driver.browser));
     });
 
     test('M for move mode enables keyboard mode', async function () {
-      await this.testDriver.focusOnBlock('controls_if_2');
-      await this.testDriver.sendKeyAndWait('m');
+      await this.driver.focusOnBlock('controls_if_2');
+      await this.driver.sendKeyAndWait('m');
 
-      chai.assert.isTrue(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isTrue(await isKeyboardNavigating(this.driver.browser));
     });
 
     test('W for workspace cursor enables keyboard mode', async function () {
-      await this.testDriver.sendKeyAndWait('w');
+      await this.driver.sendKeyAndWait('w');
 
-      chai.assert.isTrue(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isTrue(await isKeyboardNavigating(this.driver.browser));
     });
 
     test('X to disconnect enables keyboard mode', async function () {
-      await this.testDriver.focusOnBlock('controls_if_2');
-      await this.testDriver.sendKeyAndWait('x');
+      await this.driver.focusOnBlock('controls_if_2');
+      await this.driver.sendKeyAndWait('x');
 
-      chai.assert.isTrue(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isTrue(await isKeyboardNavigating(this.driver.browser));
     });
 
     test('Copy does not change keyboard mode state', async function () {
       // Make sure we're on a copyable block so that copy occurs
-      await this.testDriver.focusOnBlock('controls_if_2');
-      await this.testDriver.sendKeyAndWait('c');
+      await this.driver.focusOnBlock('controls_if_2');
+      await this.driver.sendKeyAndWait('c');
 
-      chai.assert.isFalse(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isFalse(await isKeyboardNavigating(this.driver.browser));
 
-      this.testDriver.browser.execute(() => {
+      this.driver.browser.execute(() => {
         Blockly.keyboardNavigationController.setIsActive(true);
       });
 
-      await this.testDriver.sendKeyAndWait('c');
+      await this.driver.sendKeyAndWait('c');
 
-      chai.assert.isTrue(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isTrue(await isKeyboardNavigating(this.driver.browser));
     });
 
     test('Delete does not change keyboard mode state', async function () {
       // Make sure we're on a deletable block so that delete occurs
-      await this.testDriver.focusOnBlock('controls_if_2');
-      await this.testDriver.sendKeyAndWait(Key.Backspace);
+      await this.driver.focusOnBlock('controls_if_2');
+      await this.driver.sendKeyAndWait(Key.Backspace);
 
-      chai.assert.isFalse(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isFalse(await isKeyboardNavigating(this.driver.browser));
 
-      this.testDriver.browser.execute(() => {
+      this.driver.browser.execute(() => {
         Blockly.keyboardNavigationController.setIsActive(true);
       });
 
       // Focus a different deletable block
-      await this.testDriver.focusOnBlock('controls_if_1');
-      await this.testDriver.sendKeyAndWait(Key.Backspace);
+      await this.driver.focusOnBlock('controls_if_1');
+      await this.driver.sendKeyAndWait(Key.Backspace);
 
-      chai.assert.isTrue(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isTrue(await isKeyboardNavigating(this.driver.browser));
     });
 
     test('Right clicking a block disables keyboard mode', async function () {
-      await this.testDriver.browser.execute(() => {
+      await this.driver.browser.execute(() => {
         Blockly.keyboardNavigationController.setIsActive(true);
       });
 
-      await this.testDriver.pause();
+      await this.driver.pause();
       // Right click a block
-      this.testDriver.clickBlock('controls_if_1', {button: 'right'});
-      await this.testDriver.pause();
+      this.driver.clickBlock('controls_if_1', {button: 'right'});
+      await this.driver.pause();
 
-      chai.assert.isFalse(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isFalse(await isKeyboardNavigating(this.driver.browser));
     });
 
     test('Dragging a block with mouse disables keyboard mode', async function () {
-      await this.testDriver.browser.execute(() => {
+      await this.driver.browser.execute(() => {
         Blockly.keyboardNavigationController.setIsActive(true);
       });
 
-      await this.testDriver.pause();
+      await this.driver.pause();
       // Drag a block
-      const element =
-        await this.testDriver.getBlockElementById('controls_if_1');
+      const element = await this.driver.getBlockElementById('controls_if_1');
 
-      await this.testDriver.browser.execute(() => {
+      await this.driver.browser.execute(() => {
         const ws = Blockly.getMainWorkspace() as Blockly.WorkspaceSvg;
         const block = ws.getBlockById('controls_if_1') as Blockly.BlockSvg;
         ws.scrollBoundsIntoView(
@@ -126,9 +125,9 @@ suite(
         );
       });
       await element.dragAndDrop({x: 10, y: 10});
-      await this.testDriver.pause();
+      await this.driver.pause();
 
-      chai.assert.isFalse(await isKeyboardNavigating(this.testDriver.browser));
+      chai.assert.isFalse(await isKeyboardNavigating(this.driver.browser));
     });
   },
 );

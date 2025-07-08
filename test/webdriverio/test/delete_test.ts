@@ -5,7 +5,7 @@
  */
 
 import * as chai from 'chai';
-import {testFileLocations, testSetup} from './test_setup.js';
+import {TestPlayground, testSetup} from './test_setup.js';
 import {Key} from 'webdriverio';
 
 suite('Deleting Blocks', function () {
@@ -13,120 +13,108 @@ suite('Deleting Blocks', function () {
   this.timeout(0);
 
   setup(async function () {
-    this.testDriver = await testSetup(testFileLocations.NAVIGATION_TEST_BLOCKS);
+    this.driver = await testSetup(TestPlayground.NAVIGATION_TEST_BLOCKS);
   });
 
   test('Deleting block selects parent block', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('controls_if_2');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('controls_if_2');
+
+    chai.expect(await this.driver.blockIsPresent('controls_if_2')).equal(true);
+
+    await this.driver.sendKeyAndWait(Key.Backspace);
+
+    chai.expect(await this.driver.blockIsPresent('controls_if_2')).equal(false);
 
     chai
-      .expect(await this.testDriver.blockIsPresent('controls_if_2'))
-      .equal(true);
-
-    await this.testDriver.sendKeyAndWait(Key.Backspace);
-
-    chai
-      .expect(await this.testDriver.blockIsPresent('controls_if_2'))
-      .equal(false);
-
-    chai
-      .expect(await this.testDriver.getCurrentFocusedBlockId())
+      .expect(await this.driver.getCurrentFocusedBlockId())
       .to.include('controls_if_1');
   });
 
   test('Cutting block selects parent block', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('controls_if_2');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('controls_if_2');
+
+    chai.expect(await this.driver.blockIsPresent('controls_if_2')).equal(true);
+
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'x']);
+
+    chai.expect(await this.driver.blockIsPresent('controls_if_2')).equal(false);
 
     chai
-      .expect(await this.testDriver.blockIsPresent('controls_if_2'))
-      .equal(true);
-
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'x']);
-
-    chai
-      .expect(await this.testDriver.blockIsPresent('controls_if_2'))
-      .equal(false);
-
-    chai
-      .expect(await this.testDriver.getCurrentFocusedBlockId())
+      .expect(await this.driver.getCurrentFocusedBlockId())
       .to.include('controls_if_1');
   });
 
   test('Deleting block also deletes children and inputs', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('controls_if_2');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('controls_if_2');
 
     chai
-      .expect(await this.testDriver.blockIsPresent('logic_boolean_1'))
+      .expect(await this.driver.blockIsPresent('logic_boolean_1'))
       .equal(true);
-    chai.expect(await this.testDriver.blockIsPresent('text_print_1')).equal(true);
+    chai.expect(await this.driver.blockIsPresent('text_print_1')).equal(true);
 
-    await this.testDriver.sendKeyAndWait(Key.Backspace);
+    await this.driver.sendKeyAndWait(Key.Backspace);
 
     chai
-      .expect(await this.testDriver.blockIsPresent('logic_boolean_1'))
+      .expect(await this.driver.blockIsPresent('logic_boolean_1'))
       .equal(false);
-    chai
-      .expect(await this.testDriver.blockIsPresent('text_print_1'))
-      .equal(false);
+    chai.expect(await this.driver.blockIsPresent('text_print_1')).equal(false);
   });
 
   test('Cutting block also removes children and inputs', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('controls_if_2');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('controls_if_2');
 
     chai
-      .expect(await this.testDriver.blockIsPresent('logic_boolean_1'))
+      .expect(await this.driver.blockIsPresent('logic_boolean_1'))
       .equal(true);
-    chai.expect(await this.testDriver.blockIsPresent('text_print_1')).equal(true);
+    chai.expect(await this.driver.blockIsPresent('text_print_1')).equal(true);
 
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'x']);
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'x']);
 
     chai
-      .expect(await this.testDriver.blockIsPresent('logic_boolean_1'))
+      .expect(await this.driver.blockIsPresent('logic_boolean_1'))
       .equal(false);
-    chai
-      .expect(await this.testDriver.blockIsPresent('text_print_1'))
-      .equal(false);
+    chai.expect(await this.driver.blockIsPresent('text_print_1')).equal(false);
   });
 
   test('Deleting inline input selects parent block', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('logic_boolean_1');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('logic_boolean_1');
 
     chai
-      .expect(await this.testDriver.blockIsPresent('logic_boolean_1'))
+      .expect(await this.driver.blockIsPresent('logic_boolean_1'))
       .equal(true);
 
-    await this.testDriver.sendKeyAndWait(Key.Backspace);
+    await this.driver.sendKeyAndWait(Key.Backspace);
 
     chai
-      .expect(await this.testDriver.blockIsPresent('logic_boolean_1'))
+      .expect(await this.driver.blockIsPresent('logic_boolean_1'))
       .equal(false);
 
     chai
-      .expect(await this.testDriver.getCurrentFocusedBlockId())
+      .expect(await this.driver.getCurrentFocusedBlockId())
       .to.include('controls_if_2');
   });
 
   test('Cutting inline input selects parent block', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('logic_boolean_1');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('logic_boolean_1');
 
     chai
-      .expect(await this.testDriver.blockIsPresent('logic_boolean_1'))
+      .expect(await this.driver.blockIsPresent('logic_boolean_1'))
       .equal(true);
 
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'x']);
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'x']);
 
     chai
-      .expect(await this.testDriver.blockIsPresent('logic_boolean_1'))
+      .expect(await this.driver.blockIsPresent('logic_boolean_1'))
       .equal(false);
 
     chai
-      .expect(await this.testDriver.getCurrentFocusedBlockId())
+      .expect(await this.driver.getCurrentFocusedBlockId())
       .to.include('controls_if_2');
   });
 
@@ -136,58 +124,58 @@ suite('Deleting Blocks', function () {
     // behavior ever changes, this test should be updated as well.
     // We want deleting a block to focus the workspace, whatever that
     // means at the time.
-    await this.testDriver.tabNavigateToWorkspace();
+    await this.driver.tabNavigateToWorkspace();
 
     // The test workspace doesn't already contain a stranded block, so add one.
-    await this.testDriver.moveToToolboxCategory('Math');
+    await this.driver.moveToToolboxCategory('Math');
     // Move to flyout.
-    await this.testDriver.keyRight();
+    await this.driver.keyRight();
     // Select number block.
-    await this.testDriver.sendKeyAndWait(Key.Enter);
+    await this.driver.sendKeyAndWait(Key.Enter);
     // Confirm move.
-    await this.testDriver.sendKeyAndWait(Key.Enter);
+    await this.driver.sendKeyAndWait(Key.Enter);
 
-    chai.assert.equal('math_number', await this.testDriver.getFocusedBlockType());
+    chai.assert.equal('math_number', await this.driver.getFocusedBlockType());
 
-    await this.testDriver.sendKeyAndWait(Key.Backspace);
+    await this.driver.sendKeyAndWait(Key.Backspace);
 
     chai.assert.equal(
-      await this.testDriver.getCurrentFocusedBlockId(),
+      await this.driver.getCurrentFocusedBlockId(),
       'p5_setup_1',
     );
   });
 
   test('Cutting stranded block selects top block', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
+    await this.driver.tabNavigateToWorkspace();
 
     // The test workspace doesn't already contain a stranded block, so add one.
-    await this.testDriver.moveToToolboxCategory('Math');
+    await this.driver.moveToToolboxCategory('Math');
     // Move to flyout.
-    await this.testDriver.keyRight();
+    await this.driver.keyRight();
     // Select number block.
-    await this.testDriver.sendKeyAndWait(Key.Enter);
+    await this.driver.sendKeyAndWait(Key.Enter);
     // Confirm move.
-    await this.testDriver.sendKeyAndWait(Key.Enter);
+    await this.driver.sendKeyAndWait(Key.Enter);
 
-    chai.assert.equal('math_number', await this.testDriver.getFocusedBlockType());
+    chai.assert.equal('math_number', await this.driver.getFocusedBlockType());
 
-    await this.testDriver.sendKeyAndWait([Key.Ctrl, 'x']);
+    await this.driver.sendKeyAndWait([Key.Ctrl, 'x']);
 
     chai.assert.equal(
-      await this.testDriver.getCurrentFocusedBlockId(),
+      await this.driver.getCurrentFocusedBlockId(),
       'p5_setup_1',
     );
   });
 
   test('Do not delete block while field editor is open', async function () {
     // Open a field editor
-    await this.testDriver.focusOnBlockField('colour_picker_1', 'COLOUR');
-    await this.testDriver.sendKeyAndWait(Key.Enter);
+    await this.driver.focusOnBlockField('colour_picker_1', 'COLOUR');
+    await this.driver.sendKeyAndWait(Key.Enter);
 
     // Try to delete block while field editor is open
-    await this.testDriver.sendKeyAndWait(Key.Backspace);
+    await this.driver.sendKeyAndWait(Key.Backspace);
 
     // Block is not deleted
-    chai.assert.isTrue(await this.testDriver.blockIsPresent('colour_picker_1'));
+    chai.assert.isTrue(await this.driver.blockIsPresent('colour_picker_1'));
   });
 });

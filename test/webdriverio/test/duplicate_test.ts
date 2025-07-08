@@ -6,7 +6,7 @@
 
 import * as Blockly from 'blockly';
 import * as chai from 'chai';
-import {testFileLocations, testSetup} from './test_setup.js';
+import {TestPlayground, testSetup} from './test_setup.js';
 
 suite('Duplicate test', function () {
   // Setting timeout to unlimited as these tests take longer time to run
@@ -14,31 +14,31 @@ suite('Duplicate test', function () {
 
   // Clear the workspace and load start blocks
   setup(async function () {
-    this.testDriver = await testSetup(testFileLocations.BASE);
+    this.driver = await testSetup(TestPlayground.BASE);
   });
 
   test('Duplicate block', async function () {
     // Navigate to draw_circle_1.
-    await this.testDriver.tabNavigateToWorkspace();
-    await this.testDriver.focusOnBlock('draw_circle_1');
+    await this.driver.tabNavigateToWorkspace();
+    await this.driver.focusOnBlock('draw_circle_1');
 
     // Duplicate
-    await this.testDriver.sendKeyAndWait('d');
+    await this.driver.sendKeyAndWait('d');
 
     // Check a different block of the same type has focus.
     chai.assert.notEqual(
       'draw_circle_1',
-      await this.testDriver.getCurrentFocusedBlockId(),
+      await this.driver.getCurrentFocusedBlockId(),
     );
-    chai.assert.equal('simple_circle', await this.testDriver.getFocusedBlockType());
+    chai.assert.equal('simple_circle', await this.driver.getFocusedBlockType());
   });
 
   test('Duplicate workspace comment', async function () {
-    await this.testDriver.tabNavigateToWorkspace();
+    await this.driver.tabNavigateToWorkspace();
     const text = 'A comment with text';
 
     // Create a single comment.
-    await this.testDriver.browser.execute((text: string) => {
+    await this.driver.browser.execute((text: string) => {
       const workspace = Blockly.getMainWorkspace();
       Blockly.serialization.workspaceComments.append(
         {
@@ -52,20 +52,21 @@ suite('Duplicate test', function () {
         (workspace as Blockly.WorkspaceSvg).getTopComments()[0],
       );
     }, text);
-    await this.testDriver.pause();
+    await this.driver.pause();
 
     // Duplicate.
-    await this.testDriver.sendKeyAndWait('d');
+    await this.driver.sendKeyAndWait('d');
 
     // Assert we have two comments with the same text.
-    const commentTexts = await this.testDriver.browser.execute(() =>
+    const commentTexts = await this.driver.browser.execute(() =>
       Blockly.getMainWorkspace()
         .getTopComments(true)
         .map((comment) => comment.getText()),
     );
     chai.assert.deepEqual(commentTexts, [text, text]);
     // Assert it's the duplicate that is focused (positioned below).
-    const [comment1, comment2] = await this.testDriver.browser.$$('.blocklyComment');
+    const [comment1, comment2] =
+      await this.driver.browser.$$('.blocklyComment');
     chai.assert.isTrue(await comment2.isFocused());
     chai.assert.isTrue(
       (await comment2.getLocation()).y > (await comment1.getLocation()).y,
